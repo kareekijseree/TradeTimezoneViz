@@ -1,0 +1,953 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>FX Session Clock</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: a live "where am I in the trading day" hero, a 24h session timeline you can scrub, then one card per session centre. */
+:root {
+  --bg: #eef1f6;
+  --surface: #ffffff;
+  --ink: #131a2a;
+  --muted: #586379;
+  --line: #d6dce7;
+  --track: #e4e8f0;
+  --accent: #2448c9;
+  --syd: #0c8f83;
+  --tky: #c93a55;
+  --ldn: #4a55d0;
+  --ny: #c27a07;
+  --good: #19804a;
+  --warn: #b25b00;
+  --bad: #b3263b;
+  --font-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --font-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --label-w: 92px;
+  --gap: 12px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0c1120; --surface: #141b2d; --ink: #e6eaf3; --muted: #95a1b8; --line: #263049; --track: #1c2439;
+    --accent: #7d98ff; --syd: #2fc2b3; --tky: #f06a83; --ldn: #8b93ff; --ny: #f0a93a;
+    --good: #4cc784; --warn: #f0a24a; --bad: #ff6b81; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0c1120; --surface: #141b2d; --ink: #e6eaf3; --muted: #95a1b8; --line: #263049; --track: #1c2439;
+  --accent: #7d98ff; --syd: #2fc2b3; --tky: #f06a83; --ldn: #8b93ff; --ny: #f0a93a;
+  --good: #4cc784; --warn: #f0a24a; --bad: #ff6b81; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; }
+body {
+  background: var(--bg); color: var(--ink);
+  font: 15px/1.55 var(--font-body);
+  padding-inline: 16px; padding-block: 0 48px;
+}
+.wrap { max-width: 1180px; margin: 0 auto; display: grid; gap: 28px; }
+h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; margin: 0; line-height: 1.1; }
+.eyebrow { font: 500 11.5px/1.2 var(--font-mono); letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
+.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+button, select, input { font: inherit; color: inherit; }
+button:focus-visible, select:focus-visible, input:focus-visible, .track:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Top bar */
+.top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding-block: 18px 4px; }
+.brand { display: flex; align-items: center; gap: 10px; font: 800 18px/1 var(--font-display); letter-spacing: -.01em; }
+.brand-mark { display: grid; grid-template-columns: repeat(4, 6px); gap: 2px; }
+.brand-mark i { height: 18px; border-radius: 2px; }
+.controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.controls label { font-size: 12px; color: var(--muted); }
+select, input[type="time"] {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; max-width: 100%;
+}
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--surface); }
+.seg button { border: 0; background: none; padding: 6px 10px; cursor: pointer; font-size: 13px; color: var(--muted); }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+
+/* Hero */
+.hero { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr); gap: 20px; align-items: stretch; }
+.now, .phase { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 22px 24px; min-width: 0; }
+.clock { font: 700 clamp(56px, 9vw, 92px)/1 var(--font-display); letter-spacing: -.03em; font-variant-numeric: tabular-nums; margin-top: 10px; }
+.clock .sec { font-size: .38em; color: var(--muted); font-weight: 500; letter-spacing: 0; margin-left: 6px; }
+.clock .ampm { font-size: .3em; color: var(--muted); font-weight: 500; margin-left: 6px; letter-spacing: 0; }
+.date { color: var(--muted); margin-top: 6px; }
+.preview { margin-top: 14px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 8px 10px; border-radius: 10px; background: color-mix(in srgb, var(--accent) 12%, transparent); color: var(--ink); font-size: 13px; }
+.btn { border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 5px 10px; cursor: pointer; font-size: 13px; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--surface); }
+.phase { position: relative; overflow: hidden; display: grid; gap: 12px; align-content: start; }
+.phase::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 5px; background: var(--phase-bar, var(--line)); }
+.phase h1 { font-size: clamp(30px, 4.2vw, 46px); font-weight: 800; letter-spacing: -.02em; }
+.phase p { margin: 0; color: var(--muted); max-width: 62ch; }
+.liq { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.liq-bars { display: inline-grid; grid-template-columns: repeat(5, 18px); gap: 3px; align-items: end; }
+.liq-bars i { display: block; border-radius: 2px; background: var(--track); }
+.liq-bars i.on { background: var(--ink); }
+.liq-label { font: 600 14px/1 var(--font-body); }
+.liq-note { font-size: 12.5px; color: var(--muted); }
+.cols2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.cols2 h3, .card h3.sub { font: 500 11.5px/1.2 var(--font-mono); letter-spacing: .09em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+ul.ticks { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+ul.ticks li { position: relative; padding-left: 16px; font-size: 14px; }
+ul.ticks li::before { content: ""; position: absolute; left: 0; top: .62em; width: 7px; height: 7px; border-radius: 50%; background: var(--good); }
+ul.ticks.warn li::before { background: var(--warn); border-radius: 1px; transform: rotate(45deg); }
+.alert { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border-radius: 10px; border: 1px solid color-mix(in srgb, var(--warn) 45%, transparent); background: color-mix(in srgb, var(--warn) 10%, transparent); font-size: 13.5px; }
+.alert b { color: var(--warn); }
+
+/* City tiles */
+.cities { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.city { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; display: grid; gap: 6px; min-width: 0; }
+.city-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.city-name { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+.dot { width: 10px; height: 10px; border-radius: 50%; background: var(--c); flex: none; }
+.city-time { font: 500 26px/1 var(--font-mono); font-variant-numeric: tabular-nums; }
+.city-sub { font-size: 12.5px; color: var(--muted); }
+.pill { font: 500 11px/1 var(--font-mono); letter-spacing: .06em; text-transform: uppercase; padding: 4px 7px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); white-space: nowrap; }
+.pill.open { color: var(--surface); background: var(--c, var(--good)); border-color: transparent; }
+.prog { height: 4px; border-radius: 2px; background: var(--track); overflow: hidden; }
+.prog i { display: block; height: 100%; background: var(--c); }
+
+/* Timeline */
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 20px 22px; min-width: 0; }
+.panel-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 8px 16px; margin-bottom: 16px; }
+.panel-head h2 { font-size: 22px; font-weight: 700; }
+.panel-head p { margin: 0; color: var(--muted); font-size: 13px; }
+.tl { position: relative; display: grid; gap: 6px; }
+.tl-row { display: grid; grid-template-columns: var(--label-w) minmax(0, 1fr); gap: var(--gap); align-items: center; }
+.tl-label { font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 7px; white-space: nowrap; }
+.tl-label.small { font-weight: 500; color: var(--muted); font-size: 12px; }
+.track { position: relative; height: 30px; border-radius: 6px; background: var(--track); cursor: crosshair; }
+.track.curve { height: 46px; background: none; border-bottom: 1px solid var(--line); border-radius: 0; }
+.track.markers { height: 22px; background: none; }
+.track.axis { height: 20px; background: none; cursor: default; }
+.bar { position: absolute; top: 4px; bottom: 4px; border-radius: 4px; background: var(--c); color: var(--surface); font: 500 11px/22px var(--font-mono); padding: 0 6px; overflow: hidden; white-space: nowrap; text-overflow: clip; }
+.bar.ov { background: linear-gradient(90deg, var(--c1), var(--c2)); }
+.closed-band { position: absolute; top: 0; bottom: 0; background: repeating-linear-gradient(135deg, transparent 0 6px, color-mix(in srgb, var(--muted) 22%, transparent) 6px 7px); border-radius: 6px; }
+.tick { position: absolute; top: 0; transform: translateX(-50%); font: 400 11px/20px var(--font-mono); color: var(--muted); white-space: nowrap; }
+.tick.day { color: var(--ink); font-weight: 500; }
+.marker { position: absolute; top: 5px; width: 11px; height: 11px; transform: translateX(-50%) rotate(45deg); background: var(--surface); border: 2px solid var(--c); border-radius: 2px; cursor: help; }
+.curve svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.overlay { position: absolute; top: 0; bottom: 0; pointer-events: none; left: calc(var(--label-w) + var(--gap) + (100% - var(--label-w) - var(--gap)) * var(--f)); }
+.cursor { width: 2px; margin-left: -1px; background: var(--ink); }
+.cursor span { position: absolute; top: -22px; left: 50%; transform: translateX(-50%); background: var(--ink); color: var(--bg); font: 500 11px/1 var(--font-mono); padding: 4px 6px; border-radius: 4px; white-space: nowrap; }
+.win-band { width: calc((100% - var(--label-w) - var(--gap)) * var(--w)); background: color-mix(in srgb, var(--accent) 10%, transparent); border-left: 1px dashed var(--accent); border-right: 1px dashed var(--accent); }
+.tl-wrap { padding-top: 26px; }
+.scrub { display: grid; grid-template-columns: var(--label-w) minmax(0, 1fr) auto; gap: var(--gap); align-items: center; margin-top: 16px; }
+.scrub input[type="range"] { width: 100%; accent-color: var(--accent); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12px; color: var(--muted); margin-top: 14px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend .sw { width: 14px; height: 10px; border-radius: 2px; background: var(--c); }
+.legend .sw.hatch { background: repeating-linear-gradient(135deg, transparent 0 3px, var(--muted) 3px 4px); }
+.legend .sw.win { background: color-mix(in srgb, var(--accent) 18%, transparent); border: 1px dashed var(--accent); }
+
+/* Lower grid */
+.lower { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 20px; align-items: start; }
+.cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 18px 20px; display: grid; gap: 12px; align-content: start; min-width: 0; }
+.card.active { border-color: var(--c); box-shadow: 0 0 0 1px var(--c); }
+.card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+.card-head h2 { font-size: 24px; font-weight: 800; letter-spacing: -.01em; display: flex; align-items: center; gap: 9px; }
+.card .hours { font: 500 13px/1.3 var(--font-mono); color: var(--muted); }
+.card .tag { margin: 0; font-size: 14.5px; }
+.chips { display: flex; flex-wrap: wrap; gap: 5px; }
+.chip { font: 500 11.5px/1 var(--font-mono); padding: 5px 7px; border-radius: 5px; background: var(--track); }
+.times { display: grid; gap: 4px; margin: 0; }
+.times div { display: grid; grid-template-columns: 74px minmax(0, 1fr); gap: 8px; font-size: 13.5px; }
+.times dt { font-family: var(--font-mono); font-variant-numeric: tabular-nums; color: var(--muted); }
+.times dd { margin: 0; }
+.times dd small { color: var(--muted); }
+.side { display: grid; gap: 20px; }
+.next-list { list-style: none; margin: 0; padding: 0; display: grid; }
+.next-list li { display: grid; grid-template-columns: 12px minmax(0, 1fr) auto; gap: 10px; align-items: baseline; padding: 9px 0; border-top: 1px solid var(--line); font-size: 13.5px; }
+.next-list li:first-child { border-top: 0; }
+.next-list .k { width: 9px; height: 9px; border-radius: 2px; background: var(--c); transform: rotate(45deg); align-self: center; }
+.next-list .k.sess { border-radius: 50%; transform: none; }
+.next-list .when { text-align: right; font: 400 12.5px/1.3 var(--font-mono); color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.next-list .when b { display: block; color: var(--ink); font-weight: 500; }
+.next-list small { display: block; color: var(--muted); font-size: 12px; }
+.win-form { display: flex; flex-wrap: wrap; gap: 10px; align-items: end; }
+.win-form label { display: grid; gap: 4px; font-size: 12px; color: var(--muted); }
+.cov { display: grid; gap: 8px; margin-top: 14px; }
+.cov-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 10px; font-size: 13.5px; }
+.cov-row .prog { grid-column: 1 / -1; }
+.cov-note { font-size: 13px; color: var(--muted); margin: 10px 0 0; }
+footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
+
+@media (max-width: 980px) {
+  .lower { grid-template-columns: minmax(0, 1fr); }
+  .side { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 760px) {
+  :root { --label-w: 64px; --gap: 8px; }
+  .hero, .cards, .side, .cols2 { grid-template-columns: minmax(0, 1fr); }
+  .cities { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .tick.minor { display: none; }
+  .bar { font-size: 0; }
+  .tl-label { font-size: 12px; }
+  .panel, .now, .phase { padding: 16px; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .prog i, .liq-bars i { transition: width .4s ease, background-color .3s ease; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true"><i style="background:var(--syd)"></i><i style="background:var(--tky)"></i><i style="background:var(--ldn)"></i><i style="background:var(--ny)"></i></span>
+      FX Session Clock
+    </div>
+    <div class="controls">
+      <label for="tz">Your time zone</label>
+      <select id="tz"></select>
+      <div class="seg" role="group" aria-label="Clock format">
+        <button type="button" id="fmt24" aria-pressed="true">24h</button>
+        <button type="button" id="fmt12" aria-pressed="false">12h</button>
+      </div>
+    </div>
+  </header>
+
+  <section class="hero">
+    <div class="now">
+      <div class="eyebrow" id="nowEyebrow">Your time</div>
+      <div class="clock" id="clock">--:--</div>
+      <div class="date" id="date"></div>
+      <div class="preview" id="previewBanner" hidden>
+        <span id="previewText">Previewing another time</span>
+        <button type="button" class="btn primary" id="liveBtn">Back to live</button>
+      </div>
+    </div>
+    <div class="phase" id="phase">
+      <div class="eyebrow">You are trading in</div>
+      <h1 id="phaseTitle">Loading sessions</h1>
+      <p id="phaseLede"></p>
+      <div class="liq">
+        <span class="liq-bars" id="liqBars" aria-hidden="true"><i style="height:6px"></i><i style="height:10px"></i><i style="height:14px"></i><i style="height:18px"></i><i style="height:22px"></i></span>
+        <span class="liq-label" id="liqLabel"></span>
+        <span class="liq-note" id="liqNote"></span>
+      </div>
+      <div class="cols2">
+        <div><h3>What to look for</h3><ul class="ticks" id="phaseLook"></ul></div>
+        <div><h3>What to be aware of</h3><ul class="ticks warn" id="phaseWarn"></ul></div>
+      </div>
+      <div class="alert" id="phaseAlert" hidden></div>
+    </div>
+  </section>
+
+  <section class="cities" id="cities" aria-label="Trading centres"></section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <h2>The next 24 hours</h2>
+      <p>Hours shown in your time zone. Click the timeline or drag the slider to preview any moment.</p>
+    </div>
+    <div class="tl-wrap">
+      <div class="tl" id="timeline"></div>
+    </div>
+    <div class="scrub">
+      <label class="tl-label small" for="scrub">Preview</label>
+      <input type="range" id="scrub" min="-720" max="2880" step="15" value="0">
+      <button type="button" class="btn" id="liveBtn2">Live</button>
+    </div>
+    <div class="legend">
+      <span><i class="sw" style="--c:var(--syd)"></i>Sydney</span>
+      <span><i class="sw" style="--c:var(--tky)"></i>Tokyo</span>
+      <span><i class="sw" style="--c:var(--ldn)"></i>London</span>
+      <span><i class="sw" style="--c:var(--ny)"></i>New York</span>
+      <span><i class="sw hatch"></i>FX market closed</span>
+      <span><i class="sw win"></i>Your trading window</span>
+      <span>◇ Key daily event (hover for details)</span>
+    </div>
+  </section>
+
+  <section class="lower">
+    <div class="cards" id="cards"></div>
+    <aside class="side">
+      <div class="panel">
+        <div class="panel-head"><h2>Coming up</h2></div>
+        <ul class="next-list" id="upnext"></ul>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><h2>My trading window</h2></div>
+        <form class="win-form" id="winForm">
+          <label for="winStart">From<input type="time" id="winStart" value="14:00" step="900"></label>
+          <label for="winEnd">To<input type="time" id="winEnd" value="18:00" step="900"></label>
+        </form>
+        <div class="cov" id="coverage"></div>
+        <p class="cov-note" id="covNote"></p>
+      </div>
+    </aside>
+  </section>
+
+  <footer>
+    Session hours follow common FX conventions (Sydney 07:00–16:00, Tokyo 09:00–18:00, London 08:00–17:00 and New York 08:00–17:00, each in local time, with daylight saving applied automatically). The spot FX week runs from Sunday 17:00 to Friday 17:00 New York time. Bank holidays and central-bank meeting calendars are not tracked here, so check an economic calendar before trading news. The activity curve is a rough estimate based on which centres are open, not live volume data. This is an educational aid, not trading advice.
+  </footer>
+</div>
+
+<script>
+(() => {
+"use strict";
+
+/* ---------- Reference data ---------- */
+const SESSIONS = [
+  {
+    id: "sydney", name: "Sydney", city: "Sydney", tz: "Australia/Sydney", open: [7, 0], close: [16, 0], color: "var(--syd)", weight: 1,
+    tag: "The week opens here. Quiet, thin and driven by AUD and NZD.",
+    pairs: ["AUD/USD", "NZD/USD", "AUD/JPY", "AUD/NZD", "NZD/JPY"],
+    character: "Lowest liquidity of the four centres. Ranges are usually narrow and spreads wider than during European hours.",
+    look: [
+      "Monday open gaps against Friday's close, and whether they fill",
+      "Reaction to weekend headlines before the rest of the world wakes up",
+      "New Zealand and Australian data releases",
+      "RBA decisions at 14:30 Sydney on meeting days"
+    ],
+    warn: [
+      "Wide spreads straight after the daily rollover and at the weekly open",
+      "Thin order books, so a single large order can spike price",
+      "Stop runs on low volume; breakouts rarely follow through",
+      "EUR and GBP pairs barely move, so setups there are unreliable"
+    ]
+  },
+  {
+    id: "tokyo", name: "Tokyo", city: "Tokyo", tz: "Asia/Tokyo", open: [9, 0], close: [18, 0], color: "var(--tky)", weight: 2,
+    tag: "Asia's main session. Yen flows and range building.",
+    pairs: ["USD/JPY", "EUR/JPY", "AUD/JPY", "AUD/USD", "NZD/USD", "USD/CNH"],
+    character: "Moderate liquidity. USD/JPY and the yen crosses are most active; many other pairs consolidate and build the range that London later trades.",
+    look: [
+      "The Asian session high and low, which London often sweeps or breaks",
+      "Tokyo fix at 09:55 JST moving USD/JPY, heavier on gotobi days (the 5th, 10th, 15th, 20th, 25th and month end)",
+      "The PBoC yuan fixing and Chinese data moving AUD, NZD and CNH",
+      "Range trading setups rather than breakouts in the majors"
+    ],
+    warn: [
+      "Intervention risk from Japan's Ministry of Finance when the yen moves fast",
+      "Breakouts in EUR and GBP pairs often fail before London opens",
+      "Liquidity dips over the Tokyo lunch hour (11:30–12:30 JST)",
+      "Japanese holidays such as Golden Week thin the session further"
+    ]
+  },
+  {
+    id: "london", name: "London", city: "London", tz: "Europe/London", open: [8, 0], close: [17, 0], color: "var(--ldn)", weight: 4,
+    tag: "The largest FX centre. The day's direction is often set here.",
+    pairs: ["EUR/USD", "GBP/USD", "EUR/GBP", "USD/CHF", "EUR/JPY", "GBP/JPY"],
+    character: "The highest turnover of any centre (about 38% of global FX volume in the BIS 2022 survey). Volatility expands quickly at the open and trends often start in the first two to three hours.",
+    look: [
+      "A sweep of the Asian high or low, then a reversal or continuation",
+      "Pre-positioning around the Frankfurt open and the London open",
+      "UK data at 07:00 London and Eurozone PMIs mid-morning",
+      "Momentum building into the New York overlap",
+      "BoE decisions at 12:00 London on meeting days"
+    ],
+    warn: [
+      "False breakouts in the first 30 to 60 minutes",
+      "Spreads can widen for a moment right on the open",
+      "Spikes and slippage around data releases",
+      "The 16:00 London fix can move price sharply, especially at month end",
+      "A late-morning lull before New York arrives"
+    ]
+  },
+  {
+    id: "newyork", name: "New York", city: "New York", tz: "America/New_York", open: [8, 0], close: [17, 0], color: "var(--ny)", weight: 3,
+    tag: "US data and the Fed drive everything. Busiest while London is still open.",
+    pairs: ["EUR/USD", "GBP/USD", "USD/JPY", "USD/CAD", "USD/CHF", "XAU/USD"],
+    character: "High liquidity in the morning while London overlaps. The US dollar is on one side of most trades, and liquidity fades through the afternoon.",
+    look: [
+      "US data at 08:30 ET: CPI, retail sales, and non-farm payrolls on the first Friday of the month",
+      "The US stock market open at 09:30 ET setting risk sentiment",
+      "The 10:00 ET New York option cut pinning price near large strikes",
+      "Continuation or reversal of the London move",
+      "FOMC decisions at 14:00 ET on meeting days"
+    ],
+    warn: [
+      "Whipsaw around high-impact releases; spreads widen at the print",
+      "The London close and 16:00 London fix can reverse the morning trend",
+      "Thin, choppy trading after about 12:00 ET",
+      "Position squaring on Friday afternoons",
+      "The 17:00 ET rollover: spreads widen and swap is charged"
+    ]
+  }
+];
+const S = Object.fromEntries(SESSIONS.map(s => [s.id, s]));
+
+// Recurring weekday events, in the local time of the place they happen.
+const EVENTS = [
+  { s: "sydney", tz: "Pacific/Auckland", t: [10, 45], label: "New Zealand data", note: "Usual release time for NZ statistics", marker: false },
+  { s: "sydney", tz: "Australia/Sydney", t: [11, 30], label: "Australian data", note: "Usual release time for ABS statistics", marker: true },
+  { s: "sydney", tz: "Australia/Sydney", t: [14, 30], label: "RBA decision", note: "Meeting days only", marker: false, meeting: true },
+  { s: "tokyo", tz: "Asia/Tokyo", t: [8, 50], label: "Japanese data", note: "Usual release time for Japanese statistics", marker: false },
+  { s: "tokyo", tz: "Asia/Shanghai", t: [9, 15], label: "PBoC yuan fixing", note: "Daily USD/CNY reference rate; moves CNH, AUD, NZD", marker: true },
+  { s: "tokyo", tz: "Asia/Tokyo", t: [9, 55], label: "Tokyo fix", note: "Corporate USD/JPY flows, heavier on gotobi days", marker: true },
+  { s: "tokyo", tz: "Asia/Tokyo", t: [11, 30], label: "Tokyo lunch", note: "Liquidity dips until 12:30 JST", marker: false },
+  { s: "london", tz: "Europe/London", t: [7, 0], label: "UK data", note: "Usual release time for UK statistics", marker: true },
+  { s: "london", tz: "Europe/Berlin", t: [8, 0], label: "Frankfurt open", note: "European banks start trading", marker: false },
+  { s: "london", tz: "Europe/London", t: [12, 0], label: "BoE decision", note: "Meeting days only", marker: false, meeting: true },
+  { s: "london", tz: "Europe/London", t: [16, 0], label: "London 4pm fix", note: "WM/Reuters benchmark; big flows, especially at month end", marker: true },
+  { s: "newyork", tz: "America/New_York", t: [8, 30], label: "US data", note: "CPI, payrolls, retail sales and other major releases", marker: true },
+  { s: "newyork", tz: "America/New_York", t: [9, 30], label: "US stock market open", note: "NYSE and Nasdaq open; risk sentiment shifts", marker: true },
+  { s: "newyork", tz: "America/New_York", t: [10, 0], label: "NY option cut", note: "FX options expire; price can pin near large strikes", marker: true },
+  { s: "newyork", tz: "America/New_York", t: [14, 0], label: "FOMC decision", note: "Meeting days only", marker: false, meeting: true },
+  { s: "newyork", tz: "America/New_York", t: [17, 0], label: "Daily rollover", note: "Spreads widen, swap is applied", marker: true }
+];
+
+const PHASES = {
+  "london,newyork": {
+    title: "London–New York overlap",
+    lede: "The most liquid hours of the trading day. Spreads are tightest, moves are largest and most US data lands here.",
+    look: ["Continuation of the London trend, or a reversal into the 16:00 London fix", "US data at 08:30 ET and the 09:30 ET stock market open", "Clean breakouts in EUR/USD, GBP/USD and USD/JPY"],
+    warn: ["Headline whipsaw around releases", "Over-trading in a fast market; size down if unsure", "Sharp turns as London traders close out"]
+  },
+  "london,tokyo": {
+    title: "Tokyo–London handoff",
+    lede: "Europe arrives while Asia winds down. Volatility steps up quickly as London traders react to the overnight range.",
+    look: ["Breaks of the Asian session high or low", "Early positioning in EUR, GBP and CHF", "Yen crosses moving on European flows"],
+    warn: ["The first break of the Asian range is often a fake-out", "Spreads can flicker wider on the London open"]
+  },
+  "london": {
+    title: "London session",
+    lede: "Europe has the market to itself before New York. This is often where the day's direction is decided.",
+    look: ["Trend days that start after the Asian range is taken out", "UK and Eurozone data", "Positioning ahead of US data"],
+    warn: ["A late-morning lull before New York", "Chasing a move that already ran in the first hour"]
+  },
+  "newyork": {
+    title: "New York afternoon",
+    lede: "London has gone home. Moves fade, ranges tighten and US flows dominate.",
+    look: ["Consolidation and range trades after the morning move", "FOMC decisions at 14:00 ET on meeting days", "Taking profit on positions from earlier"],
+    warn: ["Thin, choppy price with little follow-through", "Friday afternoon position squaring", "Spreads widening into the 17:00 ET rollover"]
+  },
+  "newyork,sydney": {
+    title: "New York close into Sydney",
+    lede: "The trading day turns over. Liquidity is at its lowest point of the weekday.",
+    look: ["Very little; most traders sit this out", "Fresh headlines that Asia will react to"],
+    warn: ["The widest spreads of the day around 17:00 ET", "Swap charges on positions held through rollover", "Erratic spikes on tiny volume"]
+  },
+  "sydney": {
+    title: "Sydney session",
+    lede: "The quietest part of the trading day. Only Australia and New Zealand are active.",
+    look: ["AUD and NZD reacting to local data", "Monday gaps against Friday's close"],
+    warn: ["Wide spreads and thin books", "Breakouts that go nowhere"]
+  },
+  "sydney,tokyo": {
+    title: "Asian session",
+    lede: "Sydney and Tokyo together. Yen and Aussie pairs lead while European pairs build a range.",
+    look: ["The Asian high and low forming for London", "Tokyo fix at 09:55 JST and the PBoC fixing", "Range setups in USD/JPY and AUD/USD"],
+    warn: ["EUR and GBP pairs rarely trend now", "Yen intervention risk on fast moves"]
+  },
+  "tokyo": {
+    title: "Asian session",
+    lede: "Tokyo is the main centre now. Yen pairs are active and most others consolidate.",
+    look: ["The Asian high and low forming for London", "Chinese data and yuan moves for AUD and NZD", "Range setups in USD/JPY"],
+    warn: ["Lunch-hour lull in Tokyo", "Breakouts in European pairs that fail at the London open"]
+  },
+  "": {
+    title: "Between sessions",
+    lede: "No major centre is in its core hours. The market is open but very thin.",
+    look: ["Planning: mark levels and check the calendar for the next session"],
+    warn: ["Wide spreads and random spikes", "Low-quality signals"]
+  },
+  "closed": {
+    title: "Weekend: market closed",
+    lede: "Spot FX is shut from Friday 17:00 to Sunday 17:00 New York time. Prices do not move, but news still happens.",
+    look: ["Review the week and mark key levels", "Check the coming week's economic calendar", "Weekend headlines that could gap the open"],
+    warn: ["Gap risk at the Sunday open; stops can fill far from their level", "Quotes you see now may be stale or indicative only"]
+  }
+};
+
+const LIQ = [
+  { min: -1, label: "Closed", note: "No spot FX trading" },
+  { min: 0, label: "Very thin", note: "No main centre in core hours" },
+  { min: 1, label: "Low", note: "Only Sydney active" },
+  { min: 2, label: "Moderate", note: "Asian liquidity" },
+  { min: 4, label: "High", note: "Europe or US active" },
+  { min: 7, label: "Peak", note: "London and New York overlap" }
+];
+
+/* ---------- Time-zone maths ---------- */
+const WD = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const dtfCache = {};
+function dtf(tz) {
+  return dtfCache[tz] || (dtfCache[tz] = new Intl.DateTimeFormat("en-US", {
+    timeZone: tz, hourCycle: "h23", year: "numeric", month: "numeric", day: "numeric",
+    hour: "numeric", minute: "numeric", second: "numeric", weekday: "short"
+  }));
+}
+function wall(tz, t) {
+  const p = {};
+  for (const x of dtf(tz).formatToParts(new Date(t))) p[x.type] = x.value;
+  return { y: +p.year, m: +p.month, d: +p.day, h: (+p.hour) % 24, mi: +p.minute, s: +p.second, wd: WD.indexOf(p.weekday) };
+}
+function tzOffset(tz, t) {
+  const w = wall(tz, t);
+  return Date.UTC(w.y, w.m - 1, w.d, w.h, w.mi, w.s) - Math.floor(t / 1000) * 1000;
+}
+// UTC instant for a wall-clock time in tz (day may overflow; Date.UTC normalises it).
+function zoned(tz, y, m, d, h, mi) {
+  const guess = Date.UTC(y, m - 1, d, h, mi);
+  let t = guess - tzOffset(tz, guess);
+  const o2 = tzOffset(tz, t);
+  if (guess - o2 !== t) t = guess - o2;
+  return t;
+}
+// Iterate calendar days in tz around [a, b], yielding {y, m, d, wd}.
+function* daysAround(tz, a, b, pad = 1) {
+  const w = wall(tz, a);
+  const n = Math.ceil((b - a) / 864e5) + pad;
+  for (let k = -pad; k <= n; k++) {
+    const dt = new Date(Date.UTC(w.y, w.m - 1, w.d + k));
+    yield { y: dt.getUTCFullYear(), m: dt.getUTCMonth() + 1, d: dt.getUTCDate(), wd: dt.getUTCDay() };
+  }
+}
+
+const NY = "America/New_York";
+function marketOpenAt(t) {
+  const w = wall(NY, t);
+  if (w.wd === 6) return false;
+  if (w.wd === 5 && w.h >= 17) return false;
+  if (w.wd === 0 && w.h < 17) return false;
+  return true;
+}
+function weekendIntervals(a, b) {
+  const out = [];
+  for (const d of daysAround(NY, a, b, 3)) {
+    if (d.wd !== 5) continue;
+    out.push([zoned(NY, d.y, d.m, d.d, 17, 0), zoned(NY, d.y, d.m, d.d + 2, 17, 0)]);
+  }
+  return out;
+}
+function subtract(seg, cuts) {
+  let parts = [seg];
+  for (const [c0, c1] of cuts) {
+    const next = [];
+    for (const [s0, s1] of parts) {
+      if (c1 <= s0 || c0 >= s1) { next.push([s0, s1]); continue; }
+      if (c0 > s0) next.push([s0, c0]);
+      if (c1 < s1) next.push([c1, s1]);
+    }
+    parts = next;
+  }
+  return parts;
+}
+function sessionOccurrences(s, a, b, closed) {
+  const out = [];
+  for (const d of daysAround(s.tz, a, b)) {
+    if (d.wd === 0 || d.wd === 6) continue;
+    const st = zoned(s.tz, d.y, d.m, d.d, s.open[0], s.open[1]);
+    const en = zoned(s.tz, d.y, d.m, d.d, s.close[0], s.close[1]);
+    for (const [x, y] of subtract([st, en], closed)) if (y > a && x < b) out.push({ start: x, end: y, rawStart: st, rawEnd: en, s });
+  }
+  return out;
+}
+function eventOccurrences(a, b) {
+  const out = [];
+  for (const e of EVENTS) {
+    for (const d of daysAround(e.tz, a, b)) {
+      if (d.wd === 0 || d.wd === 6) continue;
+      const t = zoned(e.tz, d.y, d.m, d.d, e.t[0], e.t[1]);
+      if (t >= a && t < b && marketOpenAt(t)) out.push({ t, e });
+    }
+  }
+  return out.sort((x, y) => x.t - y.t);
+}
+
+/* ---------- State ---------- */
+const store = {
+  get(k, d) { try { const v = localStorage.getItem("fxsc." + k); return v === null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v) { try { localStorage.setItem("fxsc." + k, JSON.stringify(v)); } catch { /* storage unavailable */ } }
+};
+const detectedTz = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+const state = {
+  tz: store.get("tz", detectedTz),
+  h12: store.get("h12", false),
+  offsetMin: 0,
+  win: store.get("win", { start: "14:00", end: "18:00" })
+};
+try { new Intl.DateTimeFormat("en", { timeZone: state.tz }); } catch { state.tz = detectedTz; }
+
+const $ = id => document.getElementById(id);
+const viewTime = () => Date.now() + state.offsetMin * 60000;
+
+/* ---------- Formatting ---------- */
+const fmtCache = {};
+function fmt(t, opts, tz = state.tz) {
+  const key = tz + JSON.stringify(opts) + state.h12;
+  const f = fmtCache[key] || (fmtCache[key] = new Intl.DateTimeFormat(undefined, { timeZone: tz, hour12: state.h12, ...opts }));
+  return f.format(new Date(t));
+}
+const fmtHM = (t, tz) => fmt(t, { hour: "2-digit", minute: "2-digit" }, tz);
+const fmtDay = (t, tz) => fmt(t, { weekday: "short" }, tz);
+function fmtDur(ms) {
+  const m = Math.max(0, Math.round(ms / 60000));
+  const h = Math.floor(m / 60), r = m % 60;
+  if (h >= 24) return Math.floor(h / 24) + "d " + (h % 24) + "h";
+  return h ? h + "h " + String(r).padStart(2, "0") + "m" : r + "m";
+}
+function sameLocalDay(a, b) {
+  const x = wall(state.tz, a), y = wall(state.tz, b);
+  return x.y === y.y && x.m === y.m && x.d === y.d;
+}
+function whenLabel(t, ref) {
+  return sameLocalDay(t, ref) ? fmtHM(t) : fmtDay(t) + " " + fmtHM(t);
+}
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+/* ---------- Analysis ---------- */
+function analyse(t) {
+  const a = t - 3 * 864e5, b = t + 3 * 864e5;
+  const closed = weekendIntervals(a, b);
+  const occ = SESSIONS.map(s => sessionOccurrences(s, a, b, closed));
+  const open = marketOpenAt(t);
+  const active = SESSIONS.filter((s, i) => occ[i].some(o => o.start <= t && t < o.end));
+  let score = active.reduce((n, s) => n + s.weight, 0);
+  const nyw = wall(NY, t);
+  const rollover = open && nyw.wd >= 1 && nyw.wd <= 4 && nyw.h === 17;
+  const weeklyOpen = open && nyw.wd === 0 && nyw.h >= 17 && nyw.h < 19;
+  const key = open ? active.map(s => s.id).sort().join(",") : "closed";
+  return { t, closed, occ, open, active, score: open ? score : -1, key, rollover, weeklyOpen };
+}
+function scoreAt(t, occ, closed) {
+  if (closed.some(([x, y]) => t >= x && t < y)) return -1;
+  let n = 0;
+  SESSIONS.forEach((s, i) => { if (occ[i].some(o => o.start <= t && t < o.end)) n += s.weight; });
+  return n;
+}
+function liqFor(score) { let r = LIQ[0]; for (const l of LIQ) if (score >= l.min) r = l; return r; }
+
+/* ---------- Render: clock & phase ---------- */
+function renderClock() {
+  const t = viewTime();
+  const w = wall(state.tz, t);
+  let h = w.h, ampm = "";
+  if (state.h12) { ampm = h < 12 ? "AM" : "PM"; h = h % 12 || 12; }
+  $("clock").innerHTML = String(h).padStart(2, "0") + ":" + String(w.mi).padStart(2, "0") +
+    '<span class="sec">' + String(w.s).padStart(2, "0") + "</span>" + (ampm ? '<span class="ampm">' + ampm + "</span>" : "");
+  $("date").textContent = fmt(t, { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+  $("nowEyebrow").textContent = (state.offsetMin ? "Preview · " : "Your time · ") + state.tz.replace(/_/g, " ");
+  const pv = $("previewBanner");
+  pv.hidden = !state.offsetMin;
+  if (state.offsetMin) $("previewText").textContent = "Previewing " + (state.offsetMin > 0 ? fmtDur(state.offsetMin * 60000) + " ahead" : fmtDur(-state.offsetMin * 60000) + " ago");
+}
+
+function renderPhase(A) {
+  const P = PHASES[A.key] || PHASES[""];
+  $("phaseTitle").textContent = P.title;
+  $("phaseLede").textContent = P.lede;
+  $("phaseLook").innerHTML = P.look.map(x => "<li>" + esc(x) + "</li>").join("");
+  $("phaseWarn").innerHTML = P.warn.map(x => "<li>" + esc(x) + "</li>").join("");
+  const colors = A.active.map(s => s.color);
+  $("phase").style.setProperty("--phase-bar", colors.length > 1 ? "linear-gradient(90deg," + colors.join(",") + ")" : (colors[0] || "var(--line)"));
+
+  const L = liqFor(A.score);
+  const level = A.rollover ? 1 : LIQ.indexOf(L);
+  [...$("liqBars").children].forEach((el, i) => el.classList.toggle("on", i < level));
+  $("liqLabel").textContent = "Liquidity: " + (A.rollover ? "Very thin" : L.label);
+  $("liqNote").textContent = A.rollover ? "Daily rollover hour" : L.note;
+
+  const alerts = [];
+  if (A.rollover) alerts.push("<b>Rollover window.</b> Spreads are at their widest around 17:00 New York time and overnight swap is applied to open positions.");
+  if (A.weeklyOpen) alerts.push("<b>Weekly open.</b> Prices can gap from Friday's close and spreads stay wide until liquidity returns.");
+  const nyw = wall(NY, A.t);
+  if (A.open && nyw.wd === 5 && nyw.h >= 12) alerts.push("<b>Friday afternoon.</b> Traders square positions before the weekend, so moves can reverse and liquidity thins out.");
+  const dom = wall(state.tz, A.t);
+  const lastDay = new Date(Date.UTC(dom.y, dom.m, 0)).getUTCDate();
+  if (A.open && dom.d >= lastDay - 1) alerts.push("<b>Month end.</b> Rebalancing flows around the 16:00 London fix can cause large, fundamental-free moves.");
+  const al = $("phaseAlert");
+  al.hidden = !alerts.length;
+  al.innerHTML = alerts.join("<br>");
+}
+
+/* ---------- Render: city tiles ---------- */
+function renderCities(A) {
+  $("cities").innerHTML = SESSIONS.map((s, i) => {
+    const cur = A.occ[i].find(o => o.start <= A.t && A.t < o.end);
+    const next = A.occ[i].find(o => o.start > A.t);
+    let pill, sub, prog = "";
+    if (cur) {
+      pill = '<span class="pill open">Open</span>';
+      sub = "Closes in " + fmtDur(cur.end - A.t);
+      const f = (A.t - cur.start) / (cur.end - cur.start);
+      prog = '<div class="prog"><i style="width:' + (f * 100).toFixed(1) + '%"></i></div>';
+    } else {
+      pill = '<span class="pill">' + (A.open ? "Closed" : "Weekend") + "</span>";
+      sub = next ? "Opens in " + fmtDur(next.start - A.t) : "";
+      prog = '<div class="prog"><i style="width:0"></i></div>';
+    }
+    return '<div class="city" style="--c:' + s.color + '"><div class="city-head"><span class="city-name"><span class="dot"></span>' + s.city +
+      "</span>" + pill + '</div><div class="city-time">' + fmtHM(A.t, s.tz) + '</div><div class="city-sub">' + fmtDay(A.t, s.tz) + " · " + sub + "</div>" + prog + "</div>";
+  }).join("");
+}
+
+/* ---------- Render: timeline ---------- */
+function windowOccurrences(a, b) {
+  const [sh, sm] = state.win.start.split(":").map(Number);
+  const [eh, em] = state.win.end.split(":").map(Number);
+  const out = [];
+  for (const d of daysAround(state.tz, a, b)) {
+    const ws = zoned(state.tz, d.y, d.m, d.d, sh, sm);
+    let we = zoned(state.tz, d.y, d.m, d.d, eh, em);
+    if (we <= ws) we = zoned(state.tz, d.y, d.m, d.d + 1, eh, em);
+    if (we > a && ws < b) out.push([ws, we]);
+  }
+  return out;
+}
+
+function renderTimeline(A) {
+  const t = A.t;
+  const lw = wall(state.tz, t - 4 * 3600e3);
+  const a = zoned(state.tz, lw.y, lw.m, lw.d, lw.h, 0);
+  const b = a + 24 * 3600e3;
+  const span = b - a;
+  const X = v => Math.min(100, Math.max(0, (v - a) / span * 100));
+  const occ = SESSIONS.map(s => sessionOccurrences(s, a, b, A.closed));
+  const closedBands = A.closed.filter(([x, y]) => y > a && x < b)
+    .map(([x, y]) => '<div class="closed-band" style="left:' + X(x) + "%;width:" + (X(y) - X(x)) + '%"></div>').join("");
+
+  const rows = [];
+  // Axis
+  let ticks = "";
+  for (let i = 0; i <= 24; i++) {
+    const tt = a + i * 3600e3;
+    const w = wall(state.tz, tt);
+    const isDay = w.h === 0;
+    let lab;
+    if (isDay) lab = fmtDay(tt);
+    else if (state.h12) lab = (w.h % 12 || 12) + (w.h < 12 ? "a" : "p");
+    else lab = String(w.h).padStart(2, "0");
+    const minor = (i % 3 !== 0 && !isDay) ? " minor" : "";
+    if (i === 0 || i === 24) continue;
+    ticks += '<span class="tick' + minor + (isDay ? " day" : "") + '" style="left:' + X(tt) + '%">' + lab + "</span>";
+  }
+  rows.push('<div class="tl-row"><span class="tl-label small">' + "Hour" + '</span><div class="track axis">' + ticks + "</div></div>");
+
+  // Session rows
+  SESSIONS.forEach((s, i) => {
+    const bars = occ[i].map(o => {
+      const l = X(o.start), r = X(o.end);
+      return '<div class="bar" style="left:' + l + "%;width:" + (r - l) + '%" title="' + s.name + ": " + esc(whenLabel(o.start, t) + " – " + whenLabel(o.end, t)) + '">' + fmtHM(o.start) + "–" + fmtHM(o.end) + "</div>";
+    }).join("");
+    rows.push('<div class="tl-row" style="--c:' + s.color + '"><span class="tl-label"><span class="dot"></span>' + s.name + '</span><div class="track" data-track>' + closedBands + bars + "</div></div>");
+  });
+
+  // Overlaps
+  let ovBars = "";
+  for (let i = 0; i < SESSIONS.length; i++) for (let j = i + 1; j < SESSIONS.length; j++) {
+    for (const p of occ[i]) for (const q of occ[j]) {
+      const x = Math.max(p.start, q.start), y = Math.min(p.end, q.end);
+      if (y <= x) continue;
+      const l = X(x), r = X(y);
+      ovBars += '<div class="bar ov" style="--c1:' + SESSIONS[i].color + ";--c2:" + SESSIONS[j].color + ";left:" + l + "%;width:" + (r - l) + '%" title="' +
+        SESSIONS[i].name + "–" + SESSIONS[j].name + " overlap: " + esc(whenLabel(x, t) + " – " + whenLabel(y, t)) + '">' + SESSIONS[i].name.slice(0, 3) + "/" + SESSIONS[j].name.slice(0, 3) + "</div>";
+    }
+  }
+  rows.push('<div class="tl-row"><span class="tl-label">Overlaps</span><div class="track" data-track>' + closedBands + ovBars + "</div></div>");
+
+  // Activity curve
+  const N = 96, pts = [];
+  let maxS = 10;
+  for (let k = 0; k <= N; k++) {
+    const tt = a + span * k / N;
+    let sc = Math.max(0, scoreAt(tt, occ, A.closed));
+    const w = wall(NY, tt);
+    if (w.h === 17 && w.wd >= 1 && w.wd <= 5) sc = Math.min(sc, 0.4);
+    pts.push([k / N * 1000, 100 - sc / maxS * 92]);
+  }
+  let d = "M0,100";
+  pts.forEach(([x, y], k) => { if (k) d += " L" + x.toFixed(1) + "," + pts[k - 1][1].toFixed(1); d += " L" + x.toFixed(1) + "," + y.toFixed(1); });
+  d += " L1000,100 Z";
+  rows.push('<div class="tl-row"><span class="tl-label small">Activity</span><div class="track curve" data-track title="Estimated relative activity, based on which centres are open">' +
+    '<svg viewBox="0 0 1000 100" preserveAspectRatio="none" aria-hidden="true"><path d="' + d + '" fill="color-mix(in srgb, var(--accent) 22%, transparent)" stroke="var(--accent)" stroke-width="1.5" vector-effect="non-scaling-stroke"></path></svg></div></div>');
+
+  // Event markers
+  const marks = eventOccurrences(a, b).filter(o => o.e.marker).map(o =>
+    '<span class="marker" style="--c:' + S[o.e.s].color + ";left:" + X(o.t) + '%" title="' + esc(fmtHM(o.t) + " · " + o.e.label + " — " + o.e.note) + '"></span>').join("");
+  rows.push('<div class="tl-row"><span class="tl-label small">Events</span><div class="track markers" data-track>' + marks + "</div></div>");
+
+  // Overlays: trading window + cursor
+  const wins = windowOccurrences(a, b).map(([x, y]) => {
+    const l = X(x), r = X(y);
+    return '<div class="overlay win-band" style="--f:' + (l / 100) + ";--w:" + ((r - l) / 100) + '"></div>';
+  }).join("");
+  const cur = '<div class="overlay cursor" style="--f:' + (X(t) / 100) + '"><span>' + (state.offsetMin ? "Preview " : "Now ") + fmtHM(t) + "</span></div>";
+
+  const tl = $("timeline");
+  tl.innerHTML = rows.join("") + wins + cur;
+  tl.dataset.a = a; tl.dataset.b = b;
+}
+
+/* ---------- Render: session cards ---------- */
+function renderCards(A) {
+  const order = [...SESSIONS].sort((p, q) => {
+    const ap = A.active.includes(p) ? 0 : 1, aq = A.active.includes(q) ? 0 : 1;
+    return ap - aq || SESSIONS.indexOf(p) - SESSIONS.indexOf(q);
+  });
+  const evs = eventOccurrences(A.t - 864e5 * 0.5, A.t + 864e5 * 3.5);
+  $("cards").innerHTML = order.map(s => {
+    const i = SESSIONS.indexOf(s);
+    const cur = A.occ[i].find(o => o.start <= A.t && A.t < o.end);
+    const next = A.occ[i].find(o => o.start > A.t);
+    const ref = cur || next;
+    const status = cur ? '<span class="pill open">Open · ' + fmtDur(cur.end - A.t) + " left</span>"
+      : '<span class="pill">' + (next ? "Opens in " + fmtDur(next.start - A.t) : "Closed") + "</span>";
+    const hours = ref ? "Your time: " + whenLabel(ref.start, A.t) + " – " + whenLabel(ref.end, A.t) + " · Local " + pad2(s.open) + "–" + pad2(s.close) : "";
+    // Key times: next occurrence of each of this session's events within/around its session
+    const seen = new Set();
+    const times = [];
+    for (const e of EVENTS.filter(e => e.s === s.id)) {
+      const o = evs.find(o => o.e === e && o.t >= (ref ? Math.min(ref.rawStart, A.t) - 6 * 3600e3 : A.t));
+      if (!o || seen.has(e.label)) continue;
+      seen.add(e.label);
+      times.push(o);
+    }
+    times.sort((x, y) => x.t - y.t);
+    const timesHtml = times.map(o => '<div><dt>' + fmtHM(o.t) + "</dt><dd>" + esc(o.e.label) + " <small>· " + esc(o.e.note) + "</small></dd></div>").join("");
+    return '<article class="card' + (cur ? " active" : "") + '" style="--c:' + s.color + '">' +
+      '<div class="card-head"><div><h2><span class="dot"></span>' + s.name + '</h2><div class="hours">' + esc(hours) + "</div></div>" + status + "</div>" +
+      '<p class="tag">' + esc(s.tag) + "</p>" +
+      '<div class="chips">' + s.pairs.map(p => '<span class="chip">' + p + "</span>").join("") + "</div>" +
+      '<div><h3 class="sub">Character</h3><p class="tag" style="font-size:14px;color:var(--muted)">' + esc(s.character) + "</p></div>" +
+      '<div><h3 class="sub">What to look for</h3><ul class="ticks">' + s.look.map(x => "<li>" + esc(x) + "</li>").join("") + "</ul></div>" +
+      '<div><h3 class="sub">What to be aware of</h3><ul class="ticks warn">' + s.warn.map(x => "<li>" + esc(x) + "</li>").join("") + "</ul></div>" +
+      (timesHtml ? '<div><h3 class="sub">Key times in your zone</h3><dl class="times">' + timesHtml + "</dl></div>" : "") +
+      "</article>";
+  }).join("");
+}
+const pad2 = ([h, m]) => String(h).padStart(2, "0") + ":" + String(m).padStart(2, "0");
+
+/* ---------- Render: up next ---------- */
+function renderUpNext(A) {
+  const items = [];
+  SESSIONS.forEach((s, i) => {
+    for (const o of A.occ[i]) {
+      if (o.start > A.t) items.push({ t: o.start, c: s.color, sess: true, label: s.name + " opens", note: "" });
+      if (o.end > A.t) items.push({ t: o.end, c: s.color, sess: true, label: s.name + " closes", note: "" });
+    }
+  });
+  for (const o of eventOccurrences(A.t, A.t + 3 * 864e5)) {
+    if (o.e.meeting) continue;
+    items.push({ t: o.t, c: S[o.e.s].color, sess: false, label: o.e.label, note: o.e.note });
+  }
+  for (const [x, y] of A.closed) {
+    if (x > A.t) items.push({ t: x, c: "var(--muted)", sess: true, label: "Weekly close", note: "Spot FX closes for the weekend" });
+    if (y > A.t) items.push({ t: y, c: "var(--muted)", sess: true, label: "Weekly open", note: "Watch for gaps" });
+  }
+  items.sort((p, q) => p.t - q.t);
+  $("upnext").innerHTML = items.slice(0, 8).map(it =>
+    '<li style="--c:' + it.c + '"><span class="k' + (it.sess ? " sess" : "") + '"></span><span>' + esc(it.label) + (it.note ? "<small>" + esc(it.note) + "</small>" : "") +
+    '</span><span class="when"><b>' + esc(whenLabel(it.t, A.t)) + "</b>in " + fmtDur(it.t - A.t) + "</span></li>").join("");
+}
+
+/* ---------- Render: trading window coverage ---------- */
+function renderCoverage(A) {
+  const wins = windowOccurrences(A.t - 864e5, A.t + 8 * 864e5);
+  // Current window if inside one, otherwise the next one that falls while the market is open.
+  let win = wins.find(([x, y]) => x <= A.t && A.t < y) || wins.find(([x, y]) => x > A.t && subtract([x, y], A.closed).length);
+  if (!win) { $("coverage").innerHTML = ""; $("covNote").textContent = "Set a start and end time to see which sessions your window covers."; return; }
+  const [ws, we] = win;
+  const len = we - ws;
+  const occ = SESSIONS.map(s => sessionOccurrences(s, ws - 864e5, we + 864e5, A.closed));
+  const inter = (list) => list.reduce((n, o) => n + Math.max(0, Math.min(o.end, we) - Math.max(o.start, ws)), 0);
+  const rows = [];
+  SESSIONS.forEach((s, i) => {
+    const ms = inter(occ[i]);
+    if (ms > 0) rows.push({ label: s.name, ms, c: s.color });
+  });
+  for (let i = 0; i < SESSIONS.length; i++) for (let j = i + 1; j < SESSIONS.length; j++) {
+    let ms = 0;
+    for (const p of occ[i]) for (const q of occ[j]) {
+      const x = Math.max(p.start, q.start, ws), y = Math.min(p.end, q.end, we);
+      if (y > x) ms += y - x;
+    }
+    if (ms > 0) rows.push({ label: SESSIONS[i].name + "–" + SESSIONS[j].name + " overlap", ms, c: "linear-gradient(90deg," + SESSIONS[i].color + "," + SESSIONS[j].color + ")" });
+  }
+  $("coverage").innerHTML = rows.length ? rows.map(r =>
+    '<div class="cov-row"><span>' + esc(r.label) + '</span><span class="mono">' + fmtDur(r.ms) + '</span><div class="prog"><i style="width:' + (r.ms / len * 100).toFixed(1) + "%;background:" + r.c + '"></i></div></div>').join("")
+    : '<div class="cov-row"><span>No main session in core hours</span></div>';
+  const inNow = ws <= A.t && A.t < we;
+  const main = rows.filter(r => !r.label.includes("overlap")).sort((p, q) => q.ms - p.ms)[0];
+  $("covNote").textContent = (inNow ? "You are inside your window now (" : "Next window: ") + whenLabel(ws, A.t) + " – " + whenLabel(we, A.t) + (inNow ? ")." : ".") +
+    (main ? " You mostly trade the " + main.label + " session." : " Liquidity will be thin.");
+}
+
+/* ---------- Main loop ---------- */
+let lastFull = 0;
+function renderAll() {
+  const A = analyse(viewTime());
+  renderClock();
+  renderPhase(A);
+  renderCities(A);
+  renderTimeline(A);
+  renderCards(A);
+  renderUpNext(A);
+  renderCoverage(A);
+  lastFull = Date.now();
+}
+function tick() {
+  renderClock();
+  if (Date.now() - lastFull > 15000) renderAll();
+}
+
+/* ---------- Controls ---------- */
+function initControls() {
+  const sel = $("tz");
+  let zones = [];
+  try { zones = Intl.supportedValuesOf("timeZone"); } catch { zones = []; }
+  if (!zones.length) zones = ["UTC", "Europe/London", "Europe/Berlin", "America/New_York", "America/Chicago", "America/Los_Angeles", "Asia/Tokyo", "Asia/Singapore", "Asia/Bangkok", "Asia/Dubai", "Australia/Sydney"];
+  if (!zones.includes(state.tz)) zones.unshift(state.tz);
+  if (!zones.includes(detectedTz)) zones.unshift(detectedTz);
+  sel.innerHTML = zones.map(z => '<option value="' + z + '">' + z.replace(/_/g, " ") + (z === detectedTz ? " (detected)" : "") + "</option>").join("");
+  sel.value = state.tz;
+  sel.addEventListener("change", () => { state.tz = sel.value; store.set("tz", state.tz); renderAll(); });
+
+  const setFmt = h12 => {
+    state.h12 = h12; store.set("h12", h12);
+    $("fmt12").setAttribute("aria-pressed", String(h12));
+    $("fmt24").setAttribute("aria-pressed", String(!h12));
+    renderAll();
+  };
+  $("fmt12").addEventListener("click", () => setFmt(true));
+  $("fmt24").addEventListener("click", () => setFmt(false));
+  $("fmt12").setAttribute("aria-pressed", String(state.h12));
+  $("fmt24").setAttribute("aria-pressed", String(!state.h12));
+
+  const scrub = $("scrub");
+  const setOffset = m => { state.offsetMin = m; scrub.value = String(m); renderAll(); };
+  scrub.addEventListener("input", () => setOffset(+scrub.value));
+  $("liveBtn").addEventListener("click", () => setOffset(0));
+  $("liveBtn2").addEventListener("click", () => setOffset(0));
+
+  $("timeline").addEventListener("click", ev => {
+    const tr = ev.target.closest("[data-track]");
+    if (!tr) return;
+    const r = tr.getBoundingClientRect();
+    const f = Math.min(1, Math.max(0, (ev.clientX - r.left) / r.width));
+    const tl = $("timeline");
+    const target = +tl.dataset.a + f * (+tl.dataset.b - +tl.dataset.a);
+    const m = Math.round((target - Date.now()) / 60000 / 15) * 15;
+    setOffset(Math.max(+scrub.min, Math.min(+scrub.max, m)));
+  });
+
+  $("winStart").value = state.win.start;
+  $("winEnd").value = state.win.end;
+  const onWin = () => {
+    const s = $("winStart").value, e = $("winEnd").value;
+    if (!s || !e) return;
+    state.win = { start: s, end: e }; store.set("win", state.win); renderAll();
+  };
+  $("winStart").addEventListener("change", onWin);
+  $("winEnd").addEventListener("change", onWin);
+  $("winForm").addEventListener("submit", ev => ev.preventDefault());
+}
+
+initControls();
+renderAll();
+setInterval(tick, 1000);
+})();
+</script>
+</body>
+</html>
