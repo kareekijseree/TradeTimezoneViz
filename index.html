@@ -1,12 +1,12 @@
 <!doctype html>
-<html lang="en">
+<html lang="th">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>FX Session Clock</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap">
 <style>
 /* Layout: a live "where am I in the trading day" hero, a 24h session timeline you can scrub, then one card per session centre. */
 :root {
@@ -24,9 +24,9 @@
   --good: #19804a;
   --warn: #b25b00;
   --bad: #b3263b;
-  --font-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
-  --font-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
-  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --font-display: "Bricolage Grotesque", "IBM Plex Sans Thai", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --font-body: "IBM Plex Sans", "IBM Plex Sans Thai", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", "IBM Plex Sans Thai", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
   --label-w: 92px;
   --gap: 12px;
   color-scheme: light;
@@ -45,6 +45,9 @@
 }
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
+:lang(th) .eyebrow, :lang(th) .cols2 h3, :lang(th) .card h3.sub, :lang(th) .pill { letter-spacing: 0; text-transform: none; font-family: var(--font-body); font-weight: 600; }
+:lang(th) body { line-height: 1.65; }
+.lang-seg button { font-weight: 600; letter-spacing: .04em; }
 html, body { margin: 0; }
 body {
   background: var(--bg); color: var(--ink);
@@ -206,8 +209,12 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
       FX Session Clock
     </div>
     <div class="controls">
-      <label for="tz">Your time zone</label>
+      <label for="tz" data-i18n="tzLabel">Your time zone</label>
       <select id="tz"></select>
+      <div class="seg lang-seg" role="group" aria-label="Language / ภาษา">
+        <button type="button" id="langTh" aria-pressed="true" lang="th">TH</button>
+        <button type="button" id="langEn" aria-pressed="false" lang="en">EN</button>
+      </div>
       <div class="seg" role="group" aria-label="Clock format">
         <button type="button" id="fmt24" aria-pressed="true">24h</button>
         <button type="button" id="fmt12" aria-pressed="false">12h</button>
@@ -222,12 +229,12 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
       <div class="date" id="date"></div>
       <div class="preview" id="previewBanner" hidden>
         <span id="previewText">Previewing another time</span>
-        <button type="button" class="btn primary" id="liveBtn">Back to live</button>
+        <button type="button" class="btn primary" id="liveBtn" data-i18n="backLive">Back to live</button>
       </div>
     </div>
     <div class="phase" id="phase">
-      <div class="eyebrow">You are trading in</div>
-      <h1 id="phaseTitle">Loading sessions</h1>
+      <div class="eyebrow" data-i18n="tradingIn">You are trading in</div>
+      <h1 id="phaseTitle"></h1>
       <p id="phaseLede"></p>
       <div class="liq">
         <span class="liq-bars" id="liqBars" aria-hidden="true"><i style="height:6px"></i><i style="height:10px"></i><i style="height:14px"></i><i style="height:18px"></i><i style="height:22px"></i></span>
@@ -235,36 +242,36 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
         <span class="liq-note" id="liqNote"></span>
       </div>
       <div class="cols2">
-        <div><h3>What to look for</h3><ul class="ticks" id="phaseLook"></ul></div>
-        <div><h3>What to be aware of</h3><ul class="ticks warn" id="phaseWarn"></ul></div>
+        <div><h3 data-i18n="lookFor">What to look for</h3><ul class="ticks" id="phaseLook"></ul></div>
+        <div><h3 data-i18n="awareOf">What to be aware of</h3><ul class="ticks warn" id="phaseWarn"></ul></div>
       </div>
       <div class="alert" id="phaseAlert" hidden></div>
     </div>
   </section>
 
-  <section class="cities" id="cities" aria-label="Trading centres"></section>
+  <section class="cities" id="cities"></section>
 
   <section class="panel">
     <div class="panel-head">
-      <h2>The next 24 hours</h2>
-      <p>Hours shown in your time zone. Click the timeline or drag the slider to preview any moment.</p>
+      <h2 data-i18n="next24">The next 24 hours</h2>
+      <p data-i18n="next24Sub">Hours shown in your time zone. Click the timeline or drag the slider to preview any moment.</p>
     </div>
     <div class="tl-wrap">
       <div class="tl" id="timeline"></div>
     </div>
     <div class="scrub">
-      <label class="tl-label small" for="scrub">Preview</label>
+      <label class="tl-label small" for="scrub" data-i18n="preview">Preview</label>
       <input type="range" id="scrub" min="-720" max="2880" step="15" value="0">
-      <button type="button" class="btn" id="liveBtn2">Live</button>
+      <button type="button" class="btn" id="liveBtn2" data-i18n="live">Live</button>
     </div>
     <div class="legend">
-      <span><i class="sw" style="--c:var(--syd)"></i>Sydney</span>
-      <span><i class="sw" style="--c:var(--tky)"></i>Tokyo</span>
-      <span><i class="sw" style="--c:var(--ldn)"></i>London</span>
-      <span><i class="sw" style="--c:var(--ny)"></i>New York</span>
-      <span><i class="sw hatch"></i>FX market closed</span>
-      <span><i class="sw win"></i>Your trading window</span>
-      <span>◇ Key daily event (hover for details)</span>
+      <span><i class="sw" style="--c:var(--syd)"></i><span data-i18n="n_sydney">Sydney</span></span>
+      <span><i class="sw" style="--c:var(--tky)"></i><span data-i18n="n_tokyo">Tokyo</span></span>
+      <span><i class="sw" style="--c:var(--ldn)"></i><span data-i18n="n_london">London</span></span>
+      <span><i class="sw" style="--c:var(--ny)"></i><span data-i18n="n_newyork">New York</span></span>
+      <span><i class="sw hatch"></i><span data-i18n="lgClosed">FX market closed</span></span>
+      <span><i class="sw win"></i><span data-i18n="lgWin">Your trading window</span></span>
+      <span data-i18n="lgEvent">◇ Key daily event (hover for details)</span>
     </div>
   </section>
 
@@ -272,14 +279,14 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
     <div class="cards" id="cards"></div>
     <aside class="side">
       <div class="panel">
-        <div class="panel-head"><h2>Coming up</h2></div>
+        <div class="panel-head"><h2 data-i18n="comingUp">Coming up</h2></div>
         <ul class="next-list" id="upnext"></ul>
       </div>
       <div class="panel">
-        <div class="panel-head"><h2>My trading window</h2></div>
+        <div class="panel-head"><h2 data-i18n="myWin">My trading window</h2></div>
         <form class="win-form" id="winForm">
-          <label for="winStart">From<input type="time" id="winStart" value="14:00" step="900"></label>
-          <label for="winEnd">To<input type="time" id="winEnd" value="18:00" step="900"></label>
+          <label for="winStart"><span data-i18n="from">From</span><input type="time" id="winStart" value="14:00" step="900"></label>
+          <label for="winEnd"><span data-i18n="to">To</span><input type="time" id="winEnd" value="18:00" step="900"></label>
         </form>
         <div class="cov" id="coverage"></div>
         <p class="cov-note" id="covNote"></p>
@@ -287,7 +294,7 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
     </aside>
   </section>
 
-  <footer>
+  <footer data-i18n="footer">
     Session hours follow common FX conventions (Sydney 07:00–16:00, Tokyo 09:00–18:00, London 08:00–17:00 and New York 08:00–17:00, each in local time, with daylight saving applied automatically). The spot FX week runs from Sunday 17:00 to Friday 17:00 New York time. Bank holidays and central-bank meeting calendars are not tracked here, so check an economic calendar before trading news. The activity curve is a rough estimate based on which centres are open, not live volume data. This is an educational aid, not trading advice.
   </footer>
 </div>
@@ -396,6 +403,170 @@ const EVENTS = [
   { s: "newyork", tz: "America/New_York", t: [14, 0], label: "FOMC decision", note: "Meeting days only", marker: false, meeting: true },
   { s: "newyork", tz: "America/New_York", t: [17, 0], label: "Daily rollover", note: "Spreads widen, swap is applied", marker: true }
 ];
+
+/* ---------- Language ---------- */
+const UI = {
+  en: {
+    tzLabel: "Your time zone", detected: "detected", backLive: "Back to live", tradingIn: "You are trading in",
+    lookFor: "What to look for", awareOf: "What to be aware of", next24: "The next 24 hours",
+    next24Sub: "Hours shown in your time zone. Click the timeline or drag the slider to preview any moment.",
+    preview: "Preview", live: "Live", lgClosed: "FX market closed", lgWin: "Your trading window", lgEvent: "◇ Key daily event (hover for details)",
+    comingUp: "Coming up", myWin: "My trading window", from: "From", to: "To", centres: "Trading centres",
+    footer: "Session hours follow common FX conventions (Sydney 07:00–16:00, Tokyo 09:00–18:00, London 08:00–17:00 and New York 08:00–17:00, each in local time, with daylight saving applied automatically). The spot FX week runs from Sunday 17:00 to Friday 17:00 New York time. Bank holidays and central-bank meeting calendars are not tracked here, so check an economic calendar before trading news. The activity curve is a rough estimate based on which centres are open, not live volume data. This is an educational aid, not trading advice.",
+    yourTime: "Your time", previewEyebrow: "Preview", ahead: "Previewing {d} ahead", ago: "Previewing {d} ago",
+    liquidity: "Liquidity: {l}", veryThin: "Very thin", rolloverHour: "Daily rollover hour",
+    alRoll: "<b>Rollover window.</b> Spreads are at their widest around 17:00 New York time and overnight swap is applied to open positions.",
+    alWeekly: "<b>Weekly open.</b> Prices can gap from Friday's close and spreads stay wide until liquidity returns.",
+    alFri: "<b>Friday afternoon.</b> Traders square positions before the weekend, so moves can reverse and liquidity thins out.",
+    alMonth: "<b>Month end.</b> Rebalancing flows around the 16:00 London fix can cause large, fundamental-free moves.",
+    open: "Open", closed: "Closed", weekend: "Weekend", closesIn: "Closes in {d}", opensIn: "Opens in {d}",
+    hour: "Hour", overlaps: "Overlaps", overlap: "{a}–{b} overlap", activity: "Activity",
+    activityTitle: "Estimated relative activity, based on which centres are open", events: "Events", now: "Now",
+    openLeft: "Open · {d} left", yourTimeRange: "Your time: {a} – {b} · Local {c}",
+    character: "Character", keyTimes: "Key times in your zone",
+    sOpens: "{s} opens", sCloses: "{s} closes", weeklyClose: "Weekly close", weeklyCloseNote: "Spot FX closes for the weekend",
+    weeklyOpen: "Weekly open", weeklyOpenNote: "Watch for gaps", inDur: "in {d}",
+    noMain: "No main session in core hours", setWin: "Set a start and end time to see which sessions your window covers.",
+    insideWin: "You are inside your window now ({a} – {b}).", nextWin: "Next window: {a} – {b}.",
+    mostly: " You mostly trade the {s} session.", thin: " Liquidity will be thin.",
+    dur: { d: "d ", h: "h ", m: "m" }
+  },
+  th: {
+    tzLabel: "เขตเวลาของคุณ", detected: "ตรวจพบ", backLive: "กลับไปเวลาปัจจุบัน", tradingIn: "ตอนนี้คุณกำลังเทรดในช่วง",
+    lookFor: "สิ่งที่ควรมองหา", awareOf: "สิ่งที่ต้องระวัง", next24: "24 ชั่วโมงข้างหน้า",
+    next24Sub: "เวลาทั้งหมดแสดงตามเขตเวลาของคุณ คลิกที่ไทม์ไลน์หรือเลื่อนแถบเพื่อดูช่วงเวลาอื่น",
+    preview: "ดูล่วงหน้า", live: "ปัจจุบัน", lgClosed: "ตลาด FX ปิด", lgWin: "ช่วงเวลาที่คุณเทรด", lgEvent: "◇ เหตุการณ์สำคัญประจำวัน (ชี้เพื่อดูรายละเอียด)",
+    comingUp: "เหตุการณ์ถัดไป", myWin: "ช่วงเวลาเทรดของฉัน", from: "ตั้งแต่", to: "ถึง", centres: "ศูนย์กลางการเทรด",
+    footer: "เวลาของแต่ละเซสชันอ้างอิงตามธรรมเนียมทั่วไปของตลาด FX (ซิดนีย์ 07:00–16:00, โตเกียว 09:00–18:00, ลอนดอน 08:00–17:00 และนิวยอร์ก 08:00–17:00 ตามเวลาท้องถิ่น และปรับเวลาออมแสงให้อัตโนมัติ) ตลาด Spot FX เปิดตั้งแต่วันอาทิตย์ 17:00 ถึงวันศุกร์ 17:00 ตามเวลานิวยอร์ก หน้านี้ไม่ได้ติดตามวันหยุดธนาคารและตารางประชุมธนาคารกลาง จึงควรตรวจสอบปฏิทินเศรษฐกิจก่อนเทรดข่าว กราฟกิจกรรมเป็นเพียงการประมาณจากศูนย์ที่เปิดอยู่ ไม่ใช่ข้อมูลวอลุ่มจริง เครื่องมือนี้มีไว้เพื่อการศึกษา ไม่ใช่คำแนะนำการลงทุน",
+    yourTime: "เวลาของคุณ", previewEyebrow: "ดูล่วงหน้า", ahead: "กำลังดูเวลาล่วงหน้า {d}", ago: "กำลังดูเวลาย้อนหลัง {d}",
+    liquidity: "สภาพคล่อง: {l}", veryThin: "บางมาก", rolloverHour: "ช่วงโรลโอเวอร์ประจำวัน",
+    alRoll: "<b>ช่วงโรลโอเวอร์</b> สเปรดกว้างที่สุดช่วง 17:00 ตามเวลานิวยอร์ก และจะมีการคิดค่าสวอปกับออเดอร์ที่ถือข้ามคืน",
+    alWeekly: "<b>ตลาดเพิ่งเปิดสัปดาห์</b> ราคาอาจเปิดกระโดด (gap) จากราคาปิดวันศุกร์ และสเปรดจะกว้างจนกว่าสภาพคล่องจะกลับมา",
+    alFri: "<b>บ่ายวันศุกร์</b> เทรดเดอร์ปิดสถานะก่อนสุดสัปดาห์ ราคาอาจกลับตัวและสภาพคล่องลดลง",
+    alMonth: "<b>สิ้นเดือน</b> แรงซื้อขายเพื่อปรับพอร์ตช่วง London fix 16:00 อาจทำให้ราคาวิ่งแรงโดยไม่เกี่ยวกับปัจจัยพื้นฐาน",
+    open: "เปิด", closed: "ปิด", weekend: "สุดสัปดาห์", closesIn: "ปิดในอีก {d}", opensIn: "เปิดในอีก {d}",
+    hour: "ชั่วโมง", overlaps: "ช่วงซ้อน", overlap: "ช่วงซ้อน {a}–{b}", activity: "กิจกรรม",
+    activityTitle: "ประมาณการกิจกรรมของตลาด จากศูนย์ที่เปิดอยู่", events: "เหตุการณ์", now: "ตอนนี้",
+    openLeft: "เปิด · เหลือ {d}", yourTimeRange: "เวลาของคุณ: {a} – {b} · เวลาท้องถิ่น {c}",
+    character: "ลักษณะ", keyTimes: "เวลาสำคัญ (เวลาของคุณ)",
+    sOpens: "{s} เปิด", sCloses: "{s} ปิด", weeklyClose: "ตลาดปิดสัปดาห์", weeklyCloseNote: "Spot FX ปิดช่วงสุดสัปดาห์",
+    weeklyOpen: "ตลาดเปิดสัปดาห์", weeklyOpenNote: "ระวังราคาเปิดกระโดด (gap)", inDur: "อีก {d}",
+    noMain: "ไม่มีเซสชันหลักที่อยู่ในช่วงเวลาทำการ", setWin: "ใส่เวลาเริ่มและเวลาสิ้นสุด เพื่อดูว่าช่วงเวลาของคุณครอบคลุมเซสชันใดบ้าง",
+    insideWin: "ตอนนี้อยู่ในช่วงเวลาเทรดของคุณ ({a} – {b})", nextWin: "ช่วงเทรดถัดไป: {a} – {b}",
+    mostly: " ส่วนใหญ่คุณเทรดในเซสชัน{s}", thin: " สภาพคล่องจะค่อนข้างบาง",
+    dur: { d: " วัน ", h: " ชม. ", m: " นาที" }
+  }
+};
+UI.en.n_sydney = "Sydney"; UI.en.n_tokyo = "Tokyo"; UI.en.n_london = "London"; UI.en.n_newyork = "New York";
+UI.th.n_sydney = "ซิดนีย์"; UI.th.n_tokyo = "โตเกียว"; UI.th.n_london = "ลอนดอน"; UI.th.n_newyork = "นิวยอร์ก";
+const SHORT = { en: { sydney: "Syd", tokyo: "Tok", london: "Lon", newyork: "NY" }, th: { sydney: "ซิด", tokyo: "โต", london: "ลอน", newyork: "นิว" } };
+
+const TH = {
+  sessions: {
+    sydney: {
+      tag: "ตลาดเปิดสัปดาห์ที่นี่ เงียบ สภาพคล่องบาง และขับเคลื่อนด้วย AUD กับ NZD",
+      character: "สภาพคล่องต่ำที่สุดในสี่ศูนย์ กรอบราคามักแคบ และสเปรดกว้างกว่าช่วงตลาดยุโรป",
+      look: ["ราคาเปิดกระโดด (gap) วันจันทร์เทียบกับราคาปิดวันศุกร์ และดูว่า gap จะถูกปิดหรือไม่", "ปฏิกิริยาต่อข่าวช่วงสุดสัปดาห์ก่อนตลาดอื่นจะเปิด", "ข่าวเศรษฐกิจของนิวซีแลนด์และออสเตรเลีย", "การประกาศดอกเบี้ย RBA เวลา 14:30 (เวลาซิดนีย์) ในวันประชุม"],
+      warn: ["สเปรดกว้างหลังโรลโอเวอร์ประจำวันและตอนตลาดเปิดสัปดาห์", "ออเดอร์บุ๊กบาง ออเดอร์ใหญ่เพียงไม่กี่ตัวก็ทำให้ราคากระชากได้", "มีการกวาดสต็อปช่วงวอลุ่มต่ำ และเบรกเอาต์มักไม่ไปต่อ", "คู่ EUR และ GBP แทบไม่ขยับ สัญญาณในคู่เหล่านี้จึงไม่น่าเชื่อถือ"]
+    },
+    tokyo: {
+      tag: "เซสชันหลักของเอเชีย เงินเยนเคลื่อนไหว และราคาสร้างกรอบ",
+      character: "สภาพคล่องปานกลาง USD/JPY และคู่ครอสเยนคึกคักที่สุด คู่เงินอื่นส่วนใหญ่มักไซด์เวย์และสร้างกรอบที่ลอนดอนจะเทรดต่อ",
+      look: ["จุดสูงสุดและต่ำสุดของเซสชันเอเชีย ซึ่งลอนดอนมักกวาดหรือเบรก", "Tokyo fix เวลา 09:55 (เวลาญี่ปุ่น) ที่ขยับ USD/JPY และจะแรงขึ้นในวัน gotobi (วันที่ 5, 10, 15, 20, 25 และสิ้นเดือน)", "ค่ากลางเงินหยวนของ PBoC และข่าวจีนที่กระทบ AUD, NZD และ CNH", "เน้นเทรดในกรอบมากกว่าเทรดเบรกเอาต์ในคู่เงินหลัก"],
+      warn: ["ความเสี่ยงที่กระทรวงการคลังญี่ปุ่นจะเข้าแทรกแซงเมื่อเยนเคลื่อนไหวเร็ว", "เบรกเอาต์ในคู่ EUR และ GBP มักล้มเหลวก่อนลอนดอนเปิด", "สภาพคล่องลดลงช่วงพักเที่ยงโตเกียว (11:30–12:30 เวลาญี่ปุ่น)", "วันหยุดญี่ปุ่น เช่น Golden Week ทำให้ตลาดบางลงอีก"]
+    },
+    london: {
+      tag: "ศูนย์กลาง FX ที่ใหญ่ที่สุด ทิศทางของวันมักถูกกำหนดที่นี่",
+      character: "มีวอลุ่มสูงที่สุดในโลก (ราว 38% ของการซื้อขาย FX ทั่วโลก ตามผลสำรวจ BIS ปี 2022) ความผันผวนเพิ่มขึ้นเร็วตอนเปิดตลาด และเทรนด์มักเริ่มในช่วง 2–3 ชั่วโมงแรก",
+      look: ["การกวาดจุดสูงหรือต่ำของเซสชันเอเชีย แล้วกลับตัวหรือไปต่อ", "การเข้าตำแหน่งช่วงตลาดแฟรงก์เฟิร์ตและลอนดอนเปิด", "ข่าวอังกฤษเวลา 07:00 (เวลาลอนดอน) และ PMI ยูโรโซนช่วงสาย", "โมเมนตัมที่ก่อตัวก่อนช่วงซ้อนกับนิวยอร์ก", "การประกาศดอกเบี้ย BoE เวลา 12:00 (เวลาลอนดอน) ในวันประชุม"],
+      warn: ["เบรกเอาต์หลอกในช่วง 30–60 นาทีแรก", "สเปรดอาจกว้างขึ้นชั่วขณะตอนเปิดตลาด", "ราคากระชากและสลิปเพจช่วงประกาศข่าว", "London fix เวลา 16:00 อาจทำให้ราคาวิ่งแรง โดยเฉพาะสิ้นเดือน", "ช่วงสายที่ตลาดเงียบก่อนนิวยอร์กเข้า"]
+    },
+    newyork: {
+      tag: "ข่าวสหรัฐฯ และ Fed คุมทุกอย่าง คึกคักที่สุดช่วงที่ลอนดอนยังเปิดอยู่",
+      character: "สภาพคล่องสูงช่วงเช้าที่ซ้อนกับลอนดอน ดอลลาร์สหรัฐอยู่ในเกือบทุกการซื้อขาย และสภาพคล่องจะลดลงในช่วงบ่าย",
+      look: ["ข่าวสหรัฐฯ เวลา 08:30 ET เช่น CPI, ยอดค้าปลีก และ Non-Farm Payrolls ทุกวันศุกร์แรกของเดือน", "ตลาดหุ้นสหรัฐฯ เปิดเวลา 09:30 ET ซึ่งกำหนดอารมณ์ตลาด (risk sentiment)", "NY option cut เวลา 10:00 ET ที่อาจตรึงราคาไว้ใกล้ strike ใหญ่", "การไปต่อหรือกลับตัวของการเคลื่อนไหวจากลอนดอน", "การประกาศดอกเบี้ย FOMC เวลา 14:00 ET ในวันประชุม"],
+      warn: ["ราคาสะบัดไปมาช่วงข่าวแรง และสเปรดกว้างตอนประกาศ", "ลอนดอนปิดและ London fix 16:00 อาจทำให้เทรนด์ช่วงเช้ากลับตัว", "หลังประมาณ 12:00 ET ตลาดบางและสะเปะสะปะ", "การปิดสถานะในบ่ายวันศุกร์", "โรลโอเวอร์ 17:00 ET สเปรดกว้างและมีการคิดค่าสวอป"]
+    }
+  },
+  events: {
+    "New Zealand data": ["ข่าวนิวซีแลนด์", "เวลาประกาศข้อมูลสถิตินิวซีแลนด์ตามปกติ"],
+    "Australian data": ["ข่าวออสเตรเลีย", "เวลาประกาศข้อมูลของ ABS ตามปกติ"],
+    "RBA decision": ["ประกาศดอกเบี้ย RBA", "เฉพาะวันประชุม"],
+    "Japanese data": ["ข่าวญี่ปุ่น", "เวลาประกาศข้อมูลสถิติญี่ปุ่นตามปกติ"],
+    "PBoC yuan fixing": ["ค่ากลางเงินหยวน PBoC", "อัตราอ้างอิง USD/CNY รายวัน กระทบ CNH, AUD, NZD"],
+    "Tokyo fix": ["Tokyo fix", "แรงซื้อขาย USD/JPY ของบริษัท แรงขึ้นในวัน gotobi"],
+    "Tokyo lunch": ["พักเที่ยงโตเกียว", "สภาพคล่องลดลงถึง 12:30 เวลาญี่ปุ่น"],
+    "UK data": ["ข่าวอังกฤษ", "เวลาประกาศข้อมูลสถิติอังกฤษตามปกติ"],
+    "Frankfurt open": ["แฟรงก์เฟิร์ตเปิด", "ธนาคารยุโรปเริ่มซื้อขาย"],
+    "BoE decision": ["ประกาศดอกเบี้ย BoE", "เฉพาะวันประชุม"],
+    "London 4pm fix": ["London fix 16:00", "อัตราอ้างอิง WM/Reuters แรงซื้อขายสูง โดยเฉพาะสิ้นเดือน"],
+    "US data": ["ข่าวสหรัฐฯ", "CPI, Non-Farm Payrolls, ยอดค้าปลีก และข่าวสำคัญอื่น ๆ"],
+    "US stock market open": ["ตลาดหุ้นสหรัฐฯ เปิด", "NYSE และ Nasdaq เปิด อารมณ์ตลาดเปลี่ยน"],
+    "NY option cut": ["NY option cut", "ออปชัน FX หมดอายุ ราคาอาจถูกตรึงใกล้ strike ใหญ่"],
+    "FOMC decision": ["ประกาศดอกเบี้ย FOMC", "เฉพาะวันประชุม"],
+    "Daily rollover": ["โรลโอเวอร์ประจำวัน", "สเปรดกว้าง และมีการคิดค่าสวอป"]
+  },
+  phases: {
+    "london,newyork": { title: "ช่วงซ้อนลอนดอน–นิวยอร์ก", lede: "ช่วงที่สภาพคล่องสูงที่สุดของวัน สเปรดแคบที่สุด ราคาวิ่งแรงที่สุด และข่าวสหรัฐฯ ส่วนใหญ่ออกช่วงนี้",
+      look: ["เทรนด์จากลอนดอนที่ไปต่อ หรือการกลับตัวก่อน London fix 16:00", "ข่าวสหรัฐฯ 08:30 ET และตลาดหุ้นสหรัฐฯ เปิด 09:30 ET", "เบรกเอาต์ที่ชัดเจนใน EUR/USD, GBP/USD และ USD/JPY"],
+      warn: ["ราคาสะบัดตามพาดหัวข่าว", "เทรดถี่เกินไปในตลาดที่เร็ว ถ้าไม่มั่นใจให้ลดขนาดสถานะ", "ราคากลับตัวแรงเมื่อเทรดเดอร์ลอนดอนปิดสถานะ"] },
+    "london,tokyo": { title: "ช่วงส่งไม้ต่อโตเกียว–ลอนดอน", lede: "ยุโรปเข้ามาขณะที่เอเชียกำลังจะปิด ความผันผวนเพิ่มขึ้นเร็วเมื่อเทรดเดอร์ลอนดอนตอบสนองต่อกรอบราคาช่วงกลางคืน",
+      look: ["การเบรกจุดสูงหรือต่ำของเซสชันเอเชีย", "การเข้าตำแหน่งช่วงแรกใน EUR, GBP และ CHF", "คู่ครอสเยนที่ขยับตามแรงซื้อขายจากยุโรป"],
+      warn: ["การเบรกกรอบเอเชียครั้งแรกมักเป็นการหลอก", "สเปรดอาจกว้างขึ้นชั่วขณะตอนลอนดอนเปิด"] },
+    "london": { title: "เซสชันลอนดอน", lede: "ยุโรปคุมตลาดก่อนนิวยอร์กเข้า ทิศทางของวันมักถูกตัดสินในช่วงนี้",
+      look: ["วันที่มีเทรนด์ หลังกรอบเอเชียถูกเบรก", "ข่าวอังกฤษและยูโรโซน", "การเข้าตำแหน่งก่อนข่าวสหรัฐฯ"],
+      warn: ["ช่วงสายที่ตลาดเงียบก่อนนิวยอร์กเข้า", "ไล่ราคาที่วิ่งไปแล้วในชั่วโมงแรก"] },
+    "newyork": { title: "นิวยอร์กช่วงบ่าย", lede: "ลอนดอนปิดแล้ว ราคาเริ่มแผ่ว กรอบแคบลง และแรงซื้อขายจากสหรัฐฯ เป็นหลัก",
+      look: ["การพักตัวและเทรดในกรอบหลังราคาวิ่งช่วงเช้า", "การประกาศดอกเบี้ย FOMC 14:00 ET ในวันประชุม", "ทยอยปิดทำกำไรสถานะที่เปิดไว้ก่อนหน้า"],
+      warn: ["ตลาดบางและสะเปะสะปะ ราคาไม่ค่อยไปต่อ", "การปิดสถานะในบ่ายวันศุกร์", "สเปรดกว้างขึ้นก่อนโรลโอเวอร์ 17:00 ET"] },
+    "newyork,sydney": { title: "นิวยอร์กปิดต่อซิดนีย์", lede: "ช่วงเปลี่ยนวันเทรด สภาพคล่องต่ำที่สุดของวันทำการ",
+      look: ["แทบไม่มีอะไรน่าเทรด ส่วนใหญ่มักพักช่วงนี้", "ข่าวใหม่ที่ตลาดเอเชียจะตอบสนอง"],
+      warn: ["สเปรดกว้างที่สุดของวันช่วง 17:00 ET", "ค่าสวอปของสถานะที่ถือข้ามโรลโอเวอร์", "ราคากระชากผิดปกติจากวอลุ่มน้อย"] },
+    "sydney": { title: "เซสชันซิดนีย์", lede: "ช่วงที่เงียบที่สุดของวันเทรด มีเพียงออสเตรเลียและนิวซีแลนด์ที่เคลื่อนไหว",
+      look: ["AUD และ NZD ตอบสนองต่อข่าวในประเทศ", "gap วันจันทร์เทียบกับราคาปิดวันศุกร์"],
+      warn: ["สเปรดกว้างและออเดอร์บุ๊กบาง", "เบรกเอาต์ที่ไม่ไปไหน"] },
+    "sydney,tokyo": { title: "เซสชันเอเชีย", lede: "ซิดนีย์และโตเกียวเปิดพร้อมกัน คู่เงินเยนและออสซี่นำตลาด ขณะที่คู่ยุโรปสร้างกรอบ",
+      look: ["จุดสูงและต่ำของเอเชียที่ก่อตัวไว้ให้ลอนดอน", "Tokyo fix 09:55 (เวลาญี่ปุ่น) และค่ากลางหยวน PBoC", "เทรดในกรอบใน USD/JPY และ AUD/USD"],
+      warn: ["คู่ EUR และ GBP ไม่ค่อยมีเทรนด์ช่วงนี้", "ความเสี่ยงการแทรกแซงเงินเยนเมื่อราคาวิ่งเร็ว"] },
+    "tokyo": { title: "เซสชันเอเชีย", lede: "โตเกียวเป็นศูนย์หลักตอนนี้ คู่เงินเยนคึกคัก ส่วนคู่อื่นส่วนใหญ่ไซด์เวย์",
+      look: ["จุดสูงและต่ำของเอเชียที่ก่อตัวไว้ให้ลอนดอน", "ข่าวจีนและค่าเงินหยวนที่กระทบ AUD และ NZD", "เทรดในกรอบใน USD/JPY"],
+      warn: ["ตลาดเงียบช่วงพักเที่ยงโตเกียว", "เบรกเอาต์ในคู่ยุโรปที่ล้มเหลวตอนลอนดอนเปิด"] },
+    "": { title: "ช่วงระหว่างเซสชัน", lede: "ไม่มีศูนย์หลักใดอยู่ในเวลาทำการ ตลาดเปิดอยู่แต่บางมาก",
+      look: ["วางแผน: ตีเส้นระดับราคาสำคัญและเช็กปฏิทินข่าวของเซสชันถัดไป"],
+      warn: ["สเปรดกว้างและราคากระชากแบบสุ่ม", "สัญญาณคุณภาพต่ำ"] },
+    "closed": { title: "สุดสัปดาห์: ตลาดปิด", lede: "Spot FX ปิดตั้งแต่วันศุกร์ 17:00 ถึงวันอาทิตย์ 17:00 ตามเวลานิวยอร์ก ราคาไม่ขยับ แต่ข่าวยังเกิดขึ้นได้",
+      look: ["ทบทวนการเทรดของสัปดาห์และตีเส้นระดับราคาสำคัญ", "เช็กปฏิทินเศรษฐกิจของสัปดาห์หน้า", "ข่าวช่วงสุดสัปดาห์ที่อาจทำให้ราคาเปิดกระโดด"],
+      warn: ["ความเสี่ยง gap ตอนเปิดวันอาทิตย์ สต็อปอาจถูกแมตช์ห่างจากจุดที่ตั้งไว้มาก", "ราคาที่เห็นตอนนี้อาจเป็นราคาเก่าหรือราคาอ้างอิงเท่านั้น"] }
+  },
+  liq: {
+    "Closed": ["ปิด", "ไม่มีการซื้อขาย Spot FX"], "Very thin": ["บางมาก", "ไม่มีศูนย์หลักอยู่ในเวลาทำการ"],
+    "Low": ["ต่ำ", "มีเพียงซิดนีย์ที่เปิด"], "Moderate": ["ปานกลาง", "สภาพคล่องเอเชีย"],
+    "High": ["สูง", "ยุโรปหรือสหรัฐฯ เปิดอยู่"], "Peak": ["สูงสุด", "ช่วงซ้อนลอนดอนและนิวยอร์ก"]
+  }
+};
+
+const LANGS = ["th", "en"];
+function t(k, vars) {
+  let str = (UI[state.lang] && UI[state.lang][k]) ?? UI.en[k] ?? k;
+  if (vars) for (const [a, b] of Object.entries(vars)) str = str.split("{" + a + "}").join(b);
+  return str;
+}
+const isTh = () => state.lang === "th";
+const sName = s => t("n_" + s.id);
+const sText = (s, f) => isTh() ? TH.sessions[s.id][f] : s[f];
+const eLabel = e => isTh() ? TH.events[e.label][0] : e.label;
+const eNote = e => isTh() ? TH.events[e.label][1] : e.note;
+const phaseText = key => { const P = PHASES[key] || PHASES[""]; return isTh() ? (TH.phases[key] || TH.phases[""]) : P; };
+const liqText = L => isTh() ? { label: TH.liq[L.label][0], note: TH.liq[L.label][1] } : L;
+function applyStatic() {
+  document.documentElement.lang = state.lang;
+  document.querySelectorAll("[data-i18n]").forEach(el => { el.textContent = t(el.dataset.i18n); });
+  $("cities").setAttribute("aria-label", t("centres"));
+  $("langTh").setAttribute("aria-pressed", String(isTh()));
+  $("langEn").setAttribute("aria-pressed", String(!isTh()));
+  const sel = $("tz");
+  for (const o of sel.options) o.textContent = o.value.replace(/_/g, " ") + (o.value === detectedTz ? " (" + t("detected") + ")" : "");
+}
 
 const PHASES = {
   "london,newyork": {
@@ -565,6 +736,7 @@ const detectedTz = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
 const state = {
   tz: store.get("tz", detectedTz),
   h12: store.get("h12", false),
+  lang: LANGS.includes(store.get("lang", "th")) ? store.get("lang", "th") : "th",
   offsetMin: 0,
   win: store.get("win", { start: "14:00", end: "18:00" })
 };
@@ -576,8 +748,8 @@ const viewTime = () => Date.now() + state.offsetMin * 60000;
 /* ---------- Formatting ---------- */
 const fmtCache = {};
 function fmt(t, opts, tz = state.tz) {
-  const key = tz + JSON.stringify(opts) + state.h12;
-  const f = fmtCache[key] || (fmtCache[key] = new Intl.DateTimeFormat(undefined, { timeZone: tz, hour12: state.h12, ...opts }));
+  const key = state.lang + tz + JSON.stringify(opts) + state.h12;
+  const f = fmtCache[key] || (fmtCache[key] = new Intl.DateTimeFormat(isTh() ? "th-TH" : "en-US", { timeZone: tz, hour12: state.h12, ...opts }));
   return f.format(new Date(t));
 }
 const fmtHM = (t, tz) => fmt(t, { hour: "2-digit", minute: "2-digit" }, tz);
@@ -585,8 +757,9 @@ const fmtDay = (t, tz) => fmt(t, { weekday: "short" }, tz);
 function fmtDur(ms) {
   const m = Math.max(0, Math.round(ms / 60000));
   const h = Math.floor(m / 60), r = m % 60;
-  if (h >= 24) return Math.floor(h / 24) + "d " + (h % 24) + "h";
-  return h ? h + "h " + String(r).padStart(2, "0") + "m" : r + "m";
+  const u = t("dur");
+  if (h >= 24) return (Math.floor(h / 24) + u.d + (h % 24) + u.h).trim();
+  return (h ? h + u.h + String(r).padStart(2, "0") + u.m : r + u.m).trim();
 }
 function sameLocalDay(a, b) {
   const x = wall(state.tz, a), y = wall(state.tz, b);
@@ -621,21 +794,21 @@ function liqFor(score) { let r = LIQ[0]; for (const l of LIQ) if (score >= l.min
 
 /* ---------- Render: clock & phase ---------- */
 function renderClock() {
-  const t = viewTime();
-  const w = wall(state.tz, t);
+  const vt = viewTime();
+  const w = wall(state.tz, vt);
   let h = w.h, ampm = "";
-  if (state.h12) { ampm = h < 12 ? "AM" : "PM"; h = h % 12 || 12; }
+  if (state.h12) { ampm = h < 12 ? (isTh() ? "ก่อนเที่ยง" : "AM") : (isTh() ? "หลังเที่ยง" : "PM"); h = h % 12 || 12; }
   $("clock").innerHTML = String(h).padStart(2, "0") + ":" + String(w.mi).padStart(2, "0") +
     '<span class="sec">' + String(w.s).padStart(2, "0") + "</span>" + (ampm ? '<span class="ampm">' + ampm + "</span>" : "");
-  $("date").textContent = fmt(t, { weekday: "long", day: "numeric", month: "long", year: "numeric" });
-  $("nowEyebrow").textContent = (state.offsetMin ? "Preview · " : "Your time · ") + state.tz.replace(/_/g, " ");
+  $("date").textContent = fmt(vt, { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+  $("nowEyebrow").textContent = t(state.offsetMin ? "previewEyebrow" : "yourTime") + " · " + state.tz.replace(/_/g, " ");
   const pv = $("previewBanner");
   pv.hidden = !state.offsetMin;
-  if (state.offsetMin) $("previewText").textContent = "Previewing " + (state.offsetMin > 0 ? fmtDur(state.offsetMin * 60000) + " ahead" : fmtDur(-state.offsetMin * 60000) + " ago");
+  if (state.offsetMin) $("previewText").textContent = t(state.offsetMin > 0 ? "ahead" : "ago", { d: fmtDur(Math.abs(state.offsetMin) * 60000) });
 }
 
 function renderPhase(A) {
-  const P = PHASES[A.key] || PHASES[""];
+  const P = phaseText(A.key);
   $("phaseTitle").textContent = P.title;
   $("phaseLede").textContent = P.lede;
   $("phaseLook").innerHTML = P.look.map(x => "<li>" + esc(x) + "</li>").join("");
@@ -646,17 +819,18 @@ function renderPhase(A) {
   const L = liqFor(A.score);
   const level = A.rollover ? 1 : LIQ.indexOf(L);
   [...$("liqBars").children].forEach((el, i) => el.classList.toggle("on", i < level));
-  $("liqLabel").textContent = "Liquidity: " + (A.rollover ? "Very thin" : L.label);
-  $("liqNote").textContent = A.rollover ? "Daily rollover hour" : L.note;
+  const LT = liqText(L);
+  $("liqLabel").textContent = t("liquidity", { l: A.rollover ? t("veryThin") : LT.label });
+  $("liqNote").textContent = A.rollover ? t("rolloverHour") : LT.note;
 
   const alerts = [];
-  if (A.rollover) alerts.push("<b>Rollover window.</b> Spreads are at their widest around 17:00 New York time and overnight swap is applied to open positions.");
-  if (A.weeklyOpen) alerts.push("<b>Weekly open.</b> Prices can gap from Friday's close and spreads stay wide until liquidity returns.");
+  if (A.rollover) alerts.push(t("alRoll"));
+  if (A.weeklyOpen) alerts.push(t("alWeekly"));
   const nyw = wall(NY, A.t);
-  if (A.open && nyw.wd === 5 && nyw.h >= 12) alerts.push("<b>Friday afternoon.</b> Traders square positions before the weekend, so moves can reverse and liquidity thins out.");
+  if (A.open && nyw.wd === 5 && nyw.h >= 12) alerts.push(t("alFri"));
   const dom = wall(state.tz, A.t);
   const lastDay = new Date(Date.UTC(dom.y, dom.m, 0)).getUTCDate();
-  if (A.open && dom.d >= lastDay - 1) alerts.push("<b>Month end.</b> Rebalancing flows around the 16:00 London fix can cause large, fundamental-free moves.");
+  if (A.open && dom.d >= lastDay - 1) alerts.push(t("alMonth"));
   const al = $("phaseAlert");
   al.hidden = !alerts.length;
   al.innerHTML = alerts.join("<br>");
@@ -669,16 +843,16 @@ function renderCities(A) {
     const next = A.occ[i].find(o => o.start > A.t);
     let pill, sub, prog = "";
     if (cur) {
-      pill = '<span class="pill open">Open</span>';
-      sub = "Closes in " + fmtDur(cur.end - A.t);
+      pill = '<span class="pill open">' + t("open") + "</span>";
+      sub = t("closesIn", { d: fmtDur(cur.end - A.t) });
       const f = (A.t - cur.start) / (cur.end - cur.start);
       prog = '<div class="prog"><i style="width:' + (f * 100).toFixed(1) + '%"></i></div>';
     } else {
-      pill = '<span class="pill">' + (A.open ? "Closed" : "Weekend") + "</span>";
-      sub = next ? "Opens in " + fmtDur(next.start - A.t) : "";
+      pill = '<span class="pill">' + t(A.open ? "closed" : "weekend") + "</span>";
+      sub = next ? t("opensIn", { d: fmtDur(next.start - A.t) }) : "";
       prog = '<div class="prog"><i style="width:0"></i></div>';
     }
-    return '<div class="city" style="--c:' + s.color + '"><div class="city-head"><span class="city-name"><span class="dot"></span>' + s.city +
+    return '<div class="city" style="--c:' + s.color + '"><div class="city-head"><span class="city-name"><span class="dot"></span>' + sName(s) +
       "</span>" + pill + '</div><div class="city-time">' + fmtHM(A.t, s.tz) + '</div><div class="city-sub">' + fmtDay(A.t, s.tz) + " · " + sub + "</div>" + prog + "</div>";
   }).join("");
 }
@@ -698,8 +872,8 @@ function windowOccurrences(a, b) {
 }
 
 function renderTimeline(A) {
-  const t = A.t;
-  const lw = wall(state.tz, t - 4 * 3600e3);
+  const now = A.t;
+  const lw = wall(state.tz, now - 4 * 3600e3);
   const a = zoned(state.tz, lw.y, lw.m, lw.d, lw.h, 0);
   const b = a + 24 * 3600e3;
   const span = b - a;
@@ -723,15 +897,15 @@ function renderTimeline(A) {
     if (i === 0 || i === 24) continue;
     ticks += '<span class="tick' + minor + (isDay ? " day" : "") + '" style="left:' + X(tt) + '%">' + lab + "</span>";
   }
-  rows.push('<div class="tl-row"><span class="tl-label small">' + "Hour" + '</span><div class="track axis">' + ticks + "</div></div>");
+  rows.push('<div class="tl-row"><span class="tl-label small">' + t("hour") + '</span><div class="track axis">' + ticks + "</div></div>");
 
   // Session rows
   SESSIONS.forEach((s, i) => {
     const bars = occ[i].map(o => {
       const l = X(o.start), r = X(o.end);
-      return '<div class="bar" style="left:' + l + "%;width:" + (r - l) + '%" title="' + s.name + ": " + esc(whenLabel(o.start, t) + " – " + whenLabel(o.end, t)) + '">' + fmtHM(o.start) + "–" + fmtHM(o.end) + "</div>";
+      return '<div class="bar" style="left:' + l + "%;width:" + (r - l) + '%" title="' + sName(s) + ": " + esc(whenLabel(o.start, now) + " – " + whenLabel(o.end, now)) + '">' + fmtHM(o.start) + "–" + fmtHM(o.end) + "</div>";
     }).join("");
-    rows.push('<div class="tl-row" style="--c:' + s.color + '"><span class="tl-label"><span class="dot"></span>' + s.name + '</span><div class="track" data-track>' + closedBands + bars + "</div></div>");
+    rows.push('<div class="tl-row" style="--c:' + s.color + '"><span class="tl-label"><span class="dot"></span>' + sName(s) + '</span><div class="track" data-track>' + closedBands + bars + "</div></div>");
   });
 
   // Overlaps
@@ -742,10 +916,10 @@ function renderTimeline(A) {
       if (y <= x) continue;
       const l = X(x), r = X(y);
       ovBars += '<div class="bar ov" style="--c1:' + SESSIONS[i].color + ";--c2:" + SESSIONS[j].color + ";left:" + l + "%;width:" + (r - l) + '%" title="' +
-        SESSIONS[i].name + "–" + SESSIONS[j].name + " overlap: " + esc(whenLabel(x, t) + " – " + whenLabel(y, t)) + '">' + SESSIONS[i].name.slice(0, 3) + "/" + SESSIONS[j].name.slice(0, 3) + "</div>";
+        t("overlap", { a: sName(SESSIONS[i]), b: sName(SESSIONS[j]) }) + ": " + esc(whenLabel(x, now) + " – " + whenLabel(y, now)) + '">' + SHORT[state.lang][SESSIONS[i].id] + "/" + SHORT[state.lang][SESSIONS[j].id] + "</div>";
     }
   }
-  rows.push('<div class="tl-row"><span class="tl-label">Overlaps</span><div class="track" data-track>' + closedBands + ovBars + "</div></div>");
+  rows.push('<div class="tl-row"><span class="tl-label">' + t("overlaps") + '</span><div class="track" data-track>' + closedBands + ovBars + "</div></div>");
 
   // Activity curve
   const N = 96, pts = [];
@@ -760,20 +934,20 @@ function renderTimeline(A) {
   let d = "M0,100";
   pts.forEach(([x, y], k) => { if (k) d += " L" + x.toFixed(1) + "," + pts[k - 1][1].toFixed(1); d += " L" + x.toFixed(1) + "," + y.toFixed(1); });
   d += " L1000,100 Z";
-  rows.push('<div class="tl-row"><span class="tl-label small">Activity</span><div class="track curve" data-track title="Estimated relative activity, based on which centres are open">' +
+  rows.push('<div class="tl-row"><span class="tl-label small">' + t("activity") + '</span><div class="track curve" data-track title="' + esc(t("activityTitle")) + '">' +
     '<svg viewBox="0 0 1000 100" preserveAspectRatio="none" aria-hidden="true"><path d="' + d + '" fill="color-mix(in srgb, var(--accent) 22%, transparent)" stroke="var(--accent)" stroke-width="1.5" vector-effect="non-scaling-stroke"></path></svg></div></div>');
 
   // Event markers
   const marks = eventOccurrences(a, b).filter(o => o.e.marker).map(o =>
-    '<span class="marker" style="--c:' + S[o.e.s].color + ";left:" + X(o.t) + '%" title="' + esc(fmtHM(o.t) + " · " + o.e.label + " — " + o.e.note) + '"></span>').join("");
-  rows.push('<div class="tl-row"><span class="tl-label small">Events</span><div class="track markers" data-track>' + marks + "</div></div>");
+    '<span class="marker" style="--c:' + S[o.e.s].color + ";left:" + X(o.t) + '%" title="' + esc(fmtHM(o.t) + " · " + eLabel(o.e) + " — " + eNote(o.e)) + '"></span>').join("");
+  rows.push('<div class="tl-row"><span class="tl-label small">' + t("events") + '</span><div class="track markers" data-track>' + marks + "</div></div>");
 
   // Overlays: trading window + cursor
   const wins = windowOccurrences(a, b).map(([x, y]) => {
     const l = X(x), r = X(y);
     return '<div class="overlay win-band" style="--f:' + (l / 100) + ";--w:" + ((r - l) / 100) + '"></div>';
   }).join("");
-  const cur = '<div class="overlay cursor" style="--f:' + (X(t) / 100) + '"><span>' + (state.offsetMin ? "Preview " : "Now ") + fmtHM(t) + "</span></div>";
+  const cur = '<div class="overlay cursor" style="--f:' + (X(now) / 100) + '"><span>' + t(state.offsetMin ? "preview" : "now") + " " + fmtHM(now) + "</span></div>";
 
   const tl = $("timeline");
   tl.innerHTML = rows.join("") + wins + cur;
@@ -792,9 +966,9 @@ function renderCards(A) {
     const cur = A.occ[i].find(o => o.start <= A.t && A.t < o.end);
     const next = A.occ[i].find(o => o.start > A.t);
     const ref = cur || next;
-    const status = cur ? '<span class="pill open">Open · ' + fmtDur(cur.end - A.t) + " left</span>"
-      : '<span class="pill">' + (next ? "Opens in " + fmtDur(next.start - A.t) : "Closed") + "</span>";
-    const hours = ref ? "Your time: " + whenLabel(ref.start, A.t) + " – " + whenLabel(ref.end, A.t) + " · Local " + pad2(s.open) + "–" + pad2(s.close) : "";
+    const status = cur ? '<span class="pill open">' + t("openLeft", { d: fmtDur(cur.end - A.t) }) + "</span>"
+      : '<span class="pill">' + (next ? t("opensIn", { d: fmtDur(next.start - A.t) }) : t("closed")) + "</span>";
+    const hours = ref ? t("yourTimeRange", { a: whenLabel(ref.start, A.t), b: whenLabel(ref.end, A.t), c: pad2(s.open) + "–" + pad2(s.close) }) : "";
     // Key times: next occurrence of each of this session's events within/around its session
     const seen = new Set();
     const times = [];
@@ -805,15 +979,15 @@ function renderCards(A) {
       times.push(o);
     }
     times.sort((x, y) => x.t - y.t);
-    const timesHtml = times.map(o => '<div><dt>' + fmtHM(o.t) + "</dt><dd>" + esc(o.e.label) + " <small>· " + esc(o.e.note) + "</small></dd></div>").join("");
+    const timesHtml = times.map(o => '<div><dt>' + fmtHM(o.t) + "</dt><dd>" + esc(eLabel(o.e)) + " <small>· " + esc(eNote(o.e)) + "</small></dd></div>").join("");
     return '<article class="card' + (cur ? " active" : "") + '" style="--c:' + s.color + '">' +
-      '<div class="card-head"><div><h2><span class="dot"></span>' + s.name + '</h2><div class="hours">' + esc(hours) + "</div></div>" + status + "</div>" +
-      '<p class="tag">' + esc(s.tag) + "</p>" +
+      '<div class="card-head"><div><h2><span class="dot"></span>' + sName(s) + '</h2><div class="hours">' + esc(hours) + "</div></div>" + status + "</div>" +
+      '<p class="tag">' + esc(sText(s, "tag")) + "</p>" +
       '<div class="chips">' + s.pairs.map(p => '<span class="chip">' + p + "</span>").join("") + "</div>" +
-      '<div><h3 class="sub">Character</h3><p class="tag" style="font-size:14px;color:var(--muted)">' + esc(s.character) + "</p></div>" +
-      '<div><h3 class="sub">What to look for</h3><ul class="ticks">' + s.look.map(x => "<li>" + esc(x) + "</li>").join("") + "</ul></div>" +
-      '<div><h3 class="sub">What to be aware of</h3><ul class="ticks warn">' + s.warn.map(x => "<li>" + esc(x) + "</li>").join("") + "</ul></div>" +
-      (timesHtml ? '<div><h3 class="sub">Key times in your zone</h3><dl class="times">' + timesHtml + "</dl></div>" : "") +
+      '<div><h3 class="sub">' + t("character") + '</h3><p class="tag" style="font-size:14px;color:var(--muted)">' + esc(sText(s, "character")) + "</p></div>" +
+      '<div><h3 class="sub">' + t("lookFor") + '</h3><ul class="ticks">' + sText(s, "look").map(x => "<li>" + esc(x) + "</li>").join("") + "</ul></div>" +
+      '<div><h3 class="sub">' + t("awareOf") + '</h3><ul class="ticks warn">' + sText(s, "warn").map(x => "<li>" + esc(x) + "</li>").join("") + "</ul></div>" +
+      (timesHtml ? '<div><h3 class="sub">' + t("keyTimes") + '</h3><dl class="times">' + timesHtml + "</dl></div>" : "") +
       "</article>";
   }).join("");
 }
@@ -824,22 +998,22 @@ function renderUpNext(A) {
   const items = [];
   SESSIONS.forEach((s, i) => {
     for (const o of A.occ[i]) {
-      if (o.start > A.t) items.push({ t: o.start, c: s.color, sess: true, label: s.name + " opens", note: "" });
-      if (o.end > A.t) items.push({ t: o.end, c: s.color, sess: true, label: s.name + " closes", note: "" });
+      if (o.start > A.t) items.push({ t: o.start, c: s.color, sess: true, label: t("sOpens", { s: sName(s) }), note: "" });
+      if (o.end > A.t) items.push({ t: o.end, c: s.color, sess: true, label: t("sCloses", { s: sName(s) }), note: "" });
     }
   });
   for (const o of eventOccurrences(A.t, A.t + 3 * 864e5)) {
     if (o.e.meeting) continue;
-    items.push({ t: o.t, c: S[o.e.s].color, sess: false, label: o.e.label, note: o.e.note });
+    items.push({ t: o.t, c: S[o.e.s].color, sess: false, label: eLabel(o.e), note: eNote(o.e) });
   }
   for (const [x, y] of A.closed) {
-    if (x > A.t) items.push({ t: x, c: "var(--muted)", sess: true, label: "Weekly close", note: "Spot FX closes for the weekend" });
-    if (y > A.t) items.push({ t: y, c: "var(--muted)", sess: true, label: "Weekly open", note: "Watch for gaps" });
+    if (x > A.t) items.push({ t: x, c: "var(--muted)", sess: true, label: t("weeklyClose"), note: t("weeklyCloseNote") });
+    if (y > A.t) items.push({ t: y, c: "var(--muted)", sess: true, label: t("weeklyOpen"), note: t("weeklyOpenNote") });
   }
   items.sort((p, q) => p.t - q.t);
   $("upnext").innerHTML = items.slice(0, 8).map(it =>
     '<li style="--c:' + it.c + '"><span class="k' + (it.sess ? " sess" : "") + '"></span><span>' + esc(it.label) + (it.note ? "<small>" + esc(it.note) + "</small>" : "") +
-    '</span><span class="when"><b>' + esc(whenLabel(it.t, A.t)) + "</b>in " + fmtDur(it.t - A.t) + "</span></li>").join("");
+    '</span><span class="when"><b>' + esc(whenLabel(it.t, A.t)) + "</b>" + t("inDur", { d: fmtDur(it.t - A.t) }) + "</span></li>").join("");
 }
 
 /* ---------- Render: trading window coverage ---------- */
@@ -847,7 +1021,7 @@ function renderCoverage(A) {
   const wins = windowOccurrences(A.t - 864e5, A.t + 8 * 864e5);
   // Current window if inside one, otherwise the next one that falls while the market is open.
   let win = wins.find(([x, y]) => x <= A.t && A.t < y) || wins.find(([x, y]) => x > A.t && subtract([x, y], A.closed).length);
-  if (!win) { $("coverage").innerHTML = ""; $("covNote").textContent = "Set a start and end time to see which sessions your window covers."; return; }
+  if (!win) { $("coverage").innerHTML = ""; $("covNote").textContent = t("setWin"); return; }
   const [ws, we] = win;
   const len = we - ws;
   const occ = SESSIONS.map(s => sessionOccurrences(s, ws - 864e5, we + 864e5, A.closed));
@@ -855,7 +1029,7 @@ function renderCoverage(A) {
   const rows = [];
   SESSIONS.forEach((s, i) => {
     const ms = inter(occ[i]);
-    if (ms > 0) rows.push({ label: s.name, ms, c: s.color });
+    if (ms > 0) rows.push({ label: sName(s), ms, c: s.color, main: true });
   });
   for (let i = 0; i < SESSIONS.length; i++) for (let j = i + 1; j < SESSIONS.length; j++) {
     let ms = 0;
@@ -863,15 +1037,15 @@ function renderCoverage(A) {
       const x = Math.max(p.start, q.start, ws), y = Math.min(p.end, q.end, we);
       if (y > x) ms += y - x;
     }
-    if (ms > 0) rows.push({ label: SESSIONS[i].name + "–" + SESSIONS[j].name + " overlap", ms, c: "linear-gradient(90deg," + SESSIONS[i].color + "," + SESSIONS[j].color + ")" });
+    if (ms > 0) rows.push({ label: t("overlap", { a: sName(SESSIONS[i]), b: sName(SESSIONS[j]) }), ms, c: "linear-gradient(90deg," + SESSIONS[i].color + "," + SESSIONS[j].color + ")" });
   }
   $("coverage").innerHTML = rows.length ? rows.map(r =>
     '<div class="cov-row"><span>' + esc(r.label) + '</span><span class="mono">' + fmtDur(r.ms) + '</span><div class="prog"><i style="width:' + (r.ms / len * 100).toFixed(1) + "%;background:" + r.c + '"></i></div></div>').join("")
-    : '<div class="cov-row"><span>No main session in core hours</span></div>';
+    : '<div class="cov-row"><span>' + esc(t("noMain")) + "</span></div>";
   const inNow = ws <= A.t && A.t < we;
-  const main = rows.filter(r => !r.label.includes("overlap")).sort((p, q) => q.ms - p.ms)[0];
-  $("covNote").textContent = (inNow ? "You are inside your window now (" : "Next window: ") + whenLabel(ws, A.t) + " – " + whenLabel(we, A.t) + (inNow ? ")." : ".") +
-    (main ? " You mostly trade the " + main.label + " session." : " Liquidity will be thin.");
+  const main = rows.filter(r => r.main).sort((p, q) => q.ms - p.ms)[0];
+  $("covNote").textContent = t(inNow ? "insideWin" : "nextWin", { a: whenLabel(ws, A.t), b: whenLabel(we, A.t) }) +
+    (main ? t("mostly", { s: main.label }) : t("thin"));
 }
 
 /* ---------- Main loop ---------- */
@@ -900,7 +1074,7 @@ function initControls() {
   if (!zones.length) zones = ["UTC", "Europe/London", "Europe/Berlin", "America/New_York", "America/Chicago", "America/Los_Angeles", "Asia/Tokyo", "Asia/Singapore", "Asia/Bangkok", "Asia/Dubai", "Australia/Sydney"];
   if (!zones.includes(state.tz)) zones.unshift(state.tz);
   if (!zones.includes(detectedTz)) zones.unshift(detectedTz);
-  sel.innerHTML = zones.map(z => '<option value="' + z + '">' + z.replace(/_/g, " ") + (z === detectedTz ? " (detected)" : "") + "</option>").join("");
+  sel.innerHTML = zones.map(z => '<option value="' + z + '">' + z.replace(/_/g, " ") + "</option>").join("");
   sel.value = state.tz;
   sel.addEventListener("change", () => { state.tz = sel.value; store.set("tz", state.tz); renderAll(); });
 
@@ -910,6 +1084,9 @@ function initControls() {
     $("fmt24").setAttribute("aria-pressed", String(!h12));
     renderAll();
   };
+  const setLang = lang => { state.lang = lang; store.set("lang", lang); applyStatic(); renderAll(); };
+  $("langTh").addEventListener("click", () => setLang("th"));
+  $("langEn").addEventListener("click", () => setLang("en"));
   $("fmt12").addEventListener("click", () => setFmt(true));
   $("fmt24").addEventListener("click", () => setFmt(false));
   $("fmt12").setAttribute("aria-pressed", String(state.h12));
@@ -945,6 +1122,7 @@ function initControls() {
 }
 
 initControls();
+applyStatic();
 renderAll();
 setInterval(tick, 1000);
 })();

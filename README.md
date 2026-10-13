@@ -1,6 +1,6 @@
 # FX Session Clock
 
-A single-page visualizer that shows which forex trading sessions are open right now, based on your own time zone, and what to watch for in each one.
+A single-page visualizer (Thai by default, with a TH/EN toggle in the top corner) that shows which forex trading sessions are open right now, based on your own time zone, and what to watch for in each one.
 
 Open `index.html` in a browser. There is no build step and no dependencies beyond Google Fonts.
 
