@@ -13,6 +13,7 @@ Open `index.html` in a browser. There is no build step and no dependencies beyon
 - **Alerts** for the daily rollover, the weekly open, Friday afternoons and month end.
 - **My trading window**: enter the hours you trade to see how much of each session and overlap it covers.
 - **Gold and oil modes**: switch between FX, gold and oil. Each mode has its own key times (Shanghai Gold Benchmark, LBMA auctions, COMEX hours, EIA/API inventories, WTI and Brent settlement, Baker Hughes), CME trading hours with the daily 17:00–18:00 ET break, and guidance per session.
+- **Crypto mode**: 24/7 market with session-based liquidity, funding times (00:00/08:00/16:00 UTC), daily close, Deribit expiry, US stock open/close, CME Bitcoin futures close/open and the weekend CME gap.
 - Daylight saving time is handled for every centre via `Intl`.
 
 Session hours follow common FX conventions (each in local time): Sydney 07:00–16:00, Tokyo 09:00–18:00, London 08:00–17:00, New York 08:00–17:00. The spot week runs Sunday 17:00 to Friday 17:00 New York time. Bank holidays and central-bank meeting dates are not tracked.

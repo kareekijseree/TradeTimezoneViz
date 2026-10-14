@@ -217,6 +217,7 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
         <button type="button" data-instr="fx" aria-pressed="true">FX</button>
         <button type="button" data-instr="gold" aria-pressed="false" data-i18n="i_gold">Gold</button>
         <button type="button" data-instr="oil" aria-pressed="false" data-i18n="i_oil">Oil</button>
+        <button type="button" data-instr="crypto" aria-pressed="false" data-i18n="i_crypto">Crypto</button>
       </div>
       <div class="seg lang-seg" role="group" aria-label="Language / ภาษา">
         <button type="button" id="langTh" aria-pressed="true" lang="th">TH</button>
@@ -304,6 +305,7 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
   <footer>
     <p data-i18n="footer">Session hours follow common FX conventions (Sydney 07:00–16:00, Tokyo 09:00–18:00, London 08:00–17:00 and New York 08:00–17:00, each in local time, with daylight saving applied automatically). The spot FX week runs from Sunday 17:00 to Friday 17:00 New York time. Bank holidays and central-bank meeting calendars are not tracked here, so check an economic calendar before trading news. The activity curve is a rough estimate based on which centres are open, not live volume data. This is an educational aid, not trading advice.</p>
     <p data-i18n="footerCmd"></p>
+    <p data-i18n="footerCrypto"></p>
   </footer>
 </div>
 
@@ -445,6 +447,11 @@ const UI = {
     alApi: "<b>API tonight.</b> API inventory data comes out at 16:30 New York time, a preview of tomorrow's EIA report.",
     alNfp: "<b>First Friday.</b> US payrolls usually land at 08:30 New York time. Gold often moves hard.",
     weeklyCloseNoteCmd: "Gold and oil futures close for the weekend",
+    i_crypto: "Crypto",
+    alCmeGap: "<b>CME gap.</b> CME Bitcoin futures are shut until Sunday 18:00 New York time. Price often comes back to fill the gap from CME's Friday close.",
+    alExpiry: "<b>Options expiry today.</b> Deribit options expire at 08:00 UTC. Price can pin near large strikes beforehand; the last Friday of the month is the largest.",
+    alFunding: "<b>Funding in {d}.</b> Perpetual funding settles at 00:00, 08:00 and 16:00 UTC. Traders often close positions just before it.",
+    footerCrypto: "Crypto trades 24/7. Sessions show when each region's traders and institutions are active. Funding times (00:00, 08:00, 16:00 UTC) are the most common schedule; some exchanges and pairs settle more often.",
     footerCmd: "Gold and oil follow CME futures hours: Sunday 18:00 to Friday 17:00 New York time, with a daily break from 17:00 to 18:00. Spot and CFD hours at your broker may differ slightly. Brent is shown on the same hours for simplicity; ICE Brent opens a little later on Sunday."
   },
   th: {
@@ -478,6 +485,11 @@ const UI = {
     alApi: "<b>คืนนี้มีตัวเลข API</b> สต็อกน้ำมัน API ออกเวลา 16:30 ตามเวลานิวยอร์ก เป็นตัวเลขนำก่อนรายงาน EIA พรุ่งนี้",
     alNfp: "<b>ศุกร์แรกของเดือน</b> ตัวเลข Non-Farm Payrolls มักออกเวลา 08:30 ตามเวลานิวยอร์ก ทองมักวิ่งแรง",
     weeklyCloseNoteCmd: "ฟิวเจอร์สทองและน้ำมันปิดช่วงสุดสัปดาห์",
+    i_crypto: "คริปโต",
+    alCmeGap: "<b>CME gap</b> ฟิวเจอร์สบิตคอยน์ CME ปิดจนถึงวันอาทิตย์ 18:00 ตามเวลานิวยอร์ก ราคามักกลับไปปิด gap จากราคาปิด CME วันศุกร์",
+    alExpiry: "<b>วันนี้ออปชันหมดอายุ</b> ออปชัน Deribit หมดอายุเวลา 08:00 UTC ก่อนหน้านั้นราคาอาจถูกตรึงใกล้ strike ใหญ่ ศุกร์สุดท้ายของเดือนใหญ่ที่สุด",
+    alFunding: "<b>อีก {d} คิด funding</b> สัญญา perpetual คิด funding เวลา 00:00, 08:00 และ 16:00 UTC เทรดเดอร์มักปิดสถานะก่อนถึงเวลา",
+    footerCrypto: "คริปโตเทรดได้ 24 ชั่วโมงทุกวัน เซสชันบอกว่าเทรดเดอร์และสถาบันของภูมิภาคไหนกำลังเทรดอยู่ เวลา funding (00:00, 08:00, 16:00 UTC) เป็นรอบที่ใช้บ่อยที่สุด บางกระดานหรือบางเหรียญคิดถี่กว่านั้น",
     footerCmd: "ทองและน้ำมันใช้เวลาของฟิวเจอร์ส CME คือวันอาทิตย์ 18:00 ถึงวันศุกร์ 17:00 ตามเวลานิวยอร์ก และพักทุกวัน 17:00–18:00 เวลา spot หรือ CFD ของโบรกเกอร์อาจต่างไปเล็กน้อย Brent ใช้เวลาเดียวกันเพื่อความง่าย แต่ ICE Brent เปิดวันอาทิตย์ช้ากว่าเล็กน้อย"
   }
 };
@@ -731,9 +743,92 @@ const INSTR = {
     ]
   }
 };
+INSTR.crypto = {
+  weights: { sydney: 0.5, tokyo: 2, london: 3, newyork: 4 }, base: 1,
+  notes: {
+    en: { asia: "Asian exchanges lead", handoff: "Europe joining Asia", london: "Europe active", overlap: "US and Europe overlap", nyPm: "US afternoon", thin: "Between sessions", weekend: "Weekend: institutions offline" },
+    th: { asia: "กระดานเทรดเอเชียนำตลาด", handoff: "ยุโรปเข้ามาต่อจากเอเชีย", london: "ยุโรปเปิดอยู่", overlap: "ช่วงซ้อนสหรัฐฯ และยุโรป", nyPm: "สหรัฐฯ ช่วงบ่าย", thin: "ช่วงระหว่างเซสชัน", weekend: "สุดสัปดาห์: สถาบันไม่ได้เทรด" }
+  },
+  sessions: {
+    sydney: {
+      pairs: ["BTC/USDT", "ETH/USDT"],
+      en: { tag: "The quiet handover after New York.", character: "Low activity. US traders are signing off and Asia is only starting, so price often drifts or retraces part of the US move.",
+        look: ["Whether the US-session move holds or retraces", "The daily candle close at 00:00 UTC coming up"], warn: ["Wicks and stop hunts on thin order books", "Moves on low volume that reverse later"] },
+      th: { tag: "ช่วงส่งต่อที่เงียบหลังนิวยอร์กปิด", character: "การซื้อขายน้อย เทรดเดอร์สหรัฐฯ เลิกเทรดแล้ว ส่วนเอเชียเพิ่งเริ่ม ราคามักลอยตัวหรือย่อกลับบางส่วนจากช่วงสหรัฐฯ",
+        look: ["ราคาที่วิ่งช่วงสหรัฐฯ จะยืนได้หรือย่อกลับ", "แท่งเทียนรายวันที่จะปิดเวลา 00:00 UTC"], warn: ["ไส้เทียนยาวและการกวาดสต็อปเมื่อออเดอร์บุ๊กบาง", "ราคาที่วิ่งด้วยวอลุ่มน้อยแล้วกลับตัวทีหลัง"] }
+    },
+    tokyo: {
+      pairs: ["BTC/USDT", "ETH/USDT", "SOL/USDT", "BTC/KRW"],
+      en: { tag: "Asian exchanges and retail flows.", character: "Binance, OKX, Bybit and Korean exchanges such as Upbit set the tone. Altcoins and memecoins often move most in Asian hours.",
+        look: ["The daily candle close and funding at 00:00 UTC", "The Korean premium (kimchi premium) as a sign of retail demand", "Hong Kong, China and Korea regulatory news", "The Asian range as levels for Europe"],
+        warn: ["Sharp altcoin pumps that fade later in the day", "News from Asian regulators can hit fast", "Breakouts in Bitcoin often fail before Europe arrives"] },
+      th: { tag: "กระดานเทรดเอเชียและแรงซื้อขายรายย่อย", character: "Binance, OKX, Bybit และกระดานเกาหลีอย่าง Upbit เป็นตัวกำหนดทิศทาง เหรียญอัลต์และมีมคอยน์มักวิ่งแรงที่สุดในช่วงเวลาเอเชีย",
+        look: ["แท่งเทียนรายวันปิดและ funding ที่ 00:00 UTC", "ส่วนต่างราคาในกระดานเกาหลี (kimchi premium) ซึ่งบอกแรงซื้อรายย่อย", "ข่าวกฎหมายจากฮ่องกง จีน และเกาหลี", "กรอบราคาเอเชียที่ใช้เป็นระดับสำหรับยุโรป"],
+        warn: ["เหรียญอัลต์พุ่งแรงแล้วแผ่วลงในช่วงหลังของวัน", "ข่าวจากหน่วยงานกำกับในเอเชียกระทบได้เร็ว", "เบรกเอาต์ของบิตคอยน์มักล้มเหลวก่อนยุโรปเข้า"] }
+    },
+    london: {
+      pairs: ["BTC/USDT", "ETH/USDT", "BTC/EUR"],
+      en: { tag: "Europe wakes up and volume steps up.", character: "European desks and market makers add liquidity. Breaks of the Asian range often start here.",
+        look: ["Breaks of the Asian high or low", "Deribit options expiry on Fridays at 08:00 UTC", "Funding at 08:00 UTC", "The dollar index and European stocks"],
+        warn: ["Fake breakouts before the US opens", "Quick moves around the 08:00 UTC funding and expiry"] },
+      th: { tag: "ยุโรปตื่น วอลุ่มเพิ่มขึ้น", character: "โต๊ะเทรดและมาร์เก็ตเมกเกอร์ในยุโรปเพิ่มสภาพคล่อง การเบรกกรอบเอเชียมักเริ่มที่ช่วงนี้",
+        look: ["การเบรกจุดสูงหรือต่ำของเอเชีย", "ออปชัน Deribit หมดอายุทุกวันศุกร์ 08:00 UTC", "funding ที่ 08:00 UTC", "ดัชนีดอลลาร์และตลาดหุ้นยุโรป"],
+        warn: ["เบรกเอาต์หลอกก่อนสหรัฐฯ เปิด", "ราคาวิ่งเร็วช่วง funding และออปชันหมดอายุ 08:00 UTC"] }
+    },
+    newyork: {
+      pairs: ["BTC/USD", "ETH/USD", "IBIT", "MSTR", "CME BTC"],
+      en: { tag: "Institutional hours. The biggest moves happen here.", character: "US spot ETFs, Coinbase and CME futures bring institutional volume. Bitcoin often trades with the Nasdaq and reacts to US data and the Fed.",
+        look: ["US data at 08:30 ET: CPI, payrolls", "The US stock market open at 09:30 ET and Nasdaq correlation", "The Coinbase premium as a sign of US buying", "Spot ETF flows, reported after the close", "FOMC decisions at 14:00 ET on meeting days"],
+        warn: ["Liquidation cascades on data surprises", "Selling when US stocks turn risk-off", "Reversals after the stock market closes at 16:00 ET"] },
+      th: { tag: "ช่วงเวลาของสถาบัน ราคาวิ่งแรงที่สุดที่นี่", character: "Spot ETF ของสหรัฐฯ, Coinbase และฟิวเจอร์ส CME นำวอลุ่มจากสถาบันเข้ามา บิตคอยน์มักวิ่งไปทางเดียวกับ Nasdaq และตอบสนองต่อข่าวสหรัฐฯ และ Fed",
+        look: ["ข่าวสหรัฐฯ 08:30 ET เช่น CPI และ Non-Farm", "ตลาดหุ้นสหรัฐฯ เปิด 09:30 ET และความสัมพันธ์กับ Nasdaq", "Coinbase premium ซึ่งบอกแรงซื้อจากสหรัฐฯ", "เงินไหลเข้าออก Spot ETF (รายงานหลังตลาดปิด)", "ประกาศดอกเบี้ย FOMC 14:00 ET ในวันประชุม"],
+        warn: ["การล้างพอร์ตต่อเนื่อง (liquidation cascade) เมื่อข่าวผิดคาด", "แรงขายเมื่อหุ้นสหรัฐฯ เข้าโหมดกลัวความเสี่ยง", "ราคากลับตัวหลังตลาดหุ้นปิด 16:00 ET"] }
+    }
+  },
+  phases: {
+    asia: { en: { title: "Asian crypto session", lede: "Asian exchanges lead. Altcoins often move most now, while Bitcoin tends to range.",
+        look: ["The daily candle close and funding at 00:00 UTC", "The Korean (kimchi) premium", "The Asian range as levels for Europe"], warn: ["Altcoin pumps that fade in European hours", "Wicks on thin order books"] },
+      th: { title: "คริปโตช่วงเอเชีย", lede: "กระดานเทรดเอเชียนำตลาด เหรียญอัลต์มักวิ่งแรงในช่วงนี้ ส่วนบิตคอยน์มักแกว่งในกรอบ",
+        look: ["แท่งเทียนรายวันปิดและ funding ที่ 00:00 UTC", "ส่วนต่างราคากระดานเกาหลี (kimchi premium)", "กรอบราคาเอเชียที่ใช้เป็นระดับสำหรับยุโรป"], warn: ["เหรียญอัลต์พุ่งแล้วแผ่วในช่วงยุโรป", "ไส้เทียนยาวเมื่อออเดอร์บุ๊กบาง"] } },
+    london: { en: { title: "Europe joins crypto", lede: "European traders and market makers add volume. Bitcoin often breaks the Asian range here.",
+        look: ["Breaks of the Asian range", "Funding at 08:00 UTC", "Deribit options expiry on Fridays at 08:00 UTC"], warn: ["Fake breakouts before New York", "Positioning ahead of US data"] },
+      th: { title: "ยุโรปเข้าตลาดคริปโต", lede: "เทรดเดอร์และมาร์เก็ตเมกเกอร์ยุโรปเพิ่มวอลุ่ม บิตคอยน์มักเบรกกรอบเอเชียในช่วงนี้",
+        look: ["การเบรกกรอบเอเชีย", "funding ที่ 08:00 UTC", "ออปชัน Deribit หมดอายุทุกวันศุกร์ 08:00 UTC"], warn: ["เบรกเอาต์หลอกก่อนนิวยอร์กเข้า", "การเข้าตำแหน่งก่อนข่าวสหรัฐฯ"] } },
+    overlap: { en: { title: "US–Europe overlap: crypto's busiest hours", lede: "US institutions arrive while Europe is still active. Volume, volatility and liquidations peak.",
+        look: ["US data at 08:30 ET", "The US stock market open at 09:30 ET and the Nasdaq", "ETF and Coinbase flows (Coinbase premium)"], warn: ["Liquidation cascades", "Headline whipsaw: Fed, SEC, macro data", "Squeezes of over-leveraged longs or shorts"] },
+      th: { title: "ช่วงซ้อนสหรัฐฯ–ยุโรป: คริปโตคึกคักที่สุด", lede: "สถาบันสหรัฐฯ เข้ามาขณะที่ยุโรปยังเปิด วอลุ่ม ความผันผวน และการล้างพอร์ตสูงสุด",
+        look: ["ข่าวสหรัฐฯ 08:30 ET", "ตลาดหุ้นสหรัฐฯ เปิด 09:30 ET และ Nasdaq", "แรงซื้อจาก ETF และ Coinbase (Coinbase premium)"], warn: ["การล้างพอร์ตต่อเนื่อง", "ราคาสะบัดตามข่าว Fed, SEC และตัวเลขเศรษฐกิจ", "การบีบฝั่ง long หรือ short ที่ใช้เลเวอเรจสูง"] } },
+    nyPm: { en: { title: "US afternoon", lede: "Europe is offline. Crypto follows US stocks into their 16:00 ET close, then volume drops.",
+        look: ["Moves into the stock market close", "FOMC decisions at 14:00 ET on meeting days"], warn: ["Reversals after US stocks close", "Thinner liquidity into the evening"] },
+      th: { title: "สหรัฐฯ ช่วงบ่าย", lede: "ยุโรปปิดแล้ว คริปโตวิ่งตามหุ้นสหรัฐฯ จนตลาดหุ้นปิด 16:00 ET จากนั้นวอลุ่มลดลง",
+        look: ["ราคาที่วิ่งก่อนตลาดหุ้นปิด", "ประกาศดอกเบี้ย FOMC 14:00 ET ในวันประชุม"], warn: ["ราคากลับตัวหลังหุ้นสหรัฐฯ ปิด", "สภาพคล่องบางลงช่วงค่ำ"] } },
+    thin: { en: { title: "Between sessions", lede: "Crypto never closes, but few big players are active right now.",
+        look: ["Plan levels for the next session"], warn: ["Wicks on thin order books"] },
+      th: { title: "ช่วงระหว่างเซสชัน", lede: "คริปโตไม่เคยปิด แต่ตอนนี้มีผู้เล่นรายใหญ่น้อย",
+        look: ["วางแผนระดับราคาสำหรับเซสชันถัดไป"], warn: ["ไส้เทียนยาวเมื่อออเดอร์บุ๊กบาง"] } },
+    weekend: { en: { title: "Crypto weekend", lede: "Crypto keeps trading, but banks, ETFs and CME futures are closed. Liquidity is thin and moves can be erratic.",
+        look: ["The CME gap between CME's Friday close and the current price", "The weekly candle close at 00:00 UTC Monday", "Sunday-evening moves before CME reopens at 18:00 ET"], warn: ["Low-liquidity pumps and dumps", "Wicks that hit stops and then reverse", "Weekend moves can reverse when institutions return on Monday"] },
+      th: { title: "คริปโตช่วงสุดสัปดาห์", lede: "คริปโตยังเทรดได้ แต่ธนาคาร ETF และฟิวเจอร์ส CME ปิด สภาพคล่องบางและราคาอาจวิ่งผิดปกติ",
+        look: ["CME gap คือส่วนต่างระหว่างราคาปิด CME วันศุกร์กับราคาตอนนี้", "แท่งเทียนรายสัปดาห์ปิดเวลา 00:00 UTC วันจันทร์", "ราคาที่วิ่งช่วงค่ำวันอาทิตย์ก่อน CME เปิด 18:00 ET"], warn: ["การปั่นราคาขึ้นลงช่วงสภาพคล่องต่ำ", "ไส้เทียนที่กวาดสต็อปแล้วกลับตัว", "ราคาที่วิ่งช่วงสุดสัปดาห์อาจกลับตัวเมื่อสถาบันกลับมาวันจันทร์"] } }
+  },
+  events: [
+    { s: "tokyo", tz: "UTC", t: [0, 0], daily: true, marker: true, en: ["Daily close + funding", "Daily candle closes; perpetual funding settles on most exchanges"], th: ["ปิดแท่งรายวัน + funding", "แท่งเทียนรายวันปิด และคิด funding ของสัญญา perpetual ในกระดานส่วนใหญ่"] },
+    { s: "london", tz: "UTC", t: [8, 0], daily: true, marker: true, en: ["Funding", "Perpetual funding settles on most exchanges"], th: ["Funding", "คิด funding ของสัญญา perpetual ในกระดานส่วนใหญ่"] },
+    { s: "london", tz: "UTC", t: [8, 0], days: [5], marker: false, en: ["Deribit options expiry", "Fridays; the last Friday of the month is the largest"], th: ["ออปชัน Deribit หมดอายุ", "ทุกวันศุกร์ ศุกร์สุดท้ายของเดือนใหญ่ที่สุด"] },
+    { s: "newyork", tz: "America/New_York", t: [8, 30], marker: true, en: ["US data", "CPI, payrolls and other major releases"], th: ["ข่าวสหรัฐฯ", "CPI, Non-Farm และข่าวสำคัญอื่น ๆ"] },
+    { s: "newyork", tz: "America/New_York", t: [9, 30], marker: true, en: ["US stock market open", "Spot ETFs start trading; Nasdaq correlation"], th: ["ตลาดหุ้นสหรัฐฯ เปิด", "Spot ETF เริ่มซื้อขาย และความสัมพันธ์กับ Nasdaq"] },
+    { s: "newyork", tz: "UTC", t: [16, 0], daily: true, marker: true, en: ["Funding", "Perpetual funding settles on most exchanges"], th: ["Funding", "คิด funding ของสัญญา perpetual ในกระดานส่วนใหญ่"] },
+    { s: "newyork", tz: "America/New_York", t: [14, 0], marker: false, meeting: true, en: ["FOMC decision", "Meeting days only"], th: ["ประกาศดอกเบี้ย FOMC", "เฉพาะวันประชุม"] },
+    { s: "newyork", tz: "America/New_York", t: [16, 0], marker: true, en: ["US stock market close", "Spot ETFs stop trading; flows are reported later"], th: ["ตลาดหุ้นสหรัฐฯ ปิด", "Spot ETF หยุดซื้อขาย ตัวเลขเงินไหลเข้าออกจะรายงานภายหลัง"] },
+    { s: "newyork", tz: "America/New_York", t: [17, 0], days: [5], marker: true, en: ["CME Bitcoin futures close", "The weekend CME gap starts here"], th: ["ฟิวเจอร์สบิตคอยน์ CME ปิด", "จุดเริ่มต้นของ CME gap ช่วงสุดสัปดาห์"] },
+    { s: "newyork", tz: "America/New_York", t: [18, 0], days: [0], marker: true, en: ["CME Bitcoin futures open", "Watch whether price fills the CME gap"], th: ["ฟิวเจอร์สบิตคอยน์ CME เปิด", "ดูว่าราคาจะกลับไปปิด CME gap หรือไม่"] }
+  ]
+};
 const PHASE_GROUP = { "london,newyork": "overlap", "london,tokyo": "handoff", "london": "london", "newyork": "nyPm", "newyork,sydney": "thin", "sydney": "thin", "sydney,tokyo": "asia", "tokyo": "asia", "": "thin" };
-const isCmd = () => state.instr !== "fx";
-const curEvents = () => isCmd() ? INSTR[state.instr].events : EVENTS;
+const isCmd = () => state.instr === "gold" || state.instr === "oil";
+const isCrypto = () => state.instr === "crypto";
+const hasData = () => state.instr !== "fx";
+const curEvents = () => hasData() ? INSTR[state.instr].events : EVENTS;
 
 const LANGS = ["th", "en"];
 function t(k, vars) {
@@ -744,14 +839,15 @@ function t(k, vars) {
 const isTh = () => state.lang === "th";
 const sName = s => t("n_" + s.id);
 const sText = (s, f) => {
-  if (isCmd()) { const c = INSTR[state.instr].sessions[s.id]; return f === "pairs" ? c.pairs : c[state.lang][f]; }
+  if (hasData()) { const c = INSTR[state.instr].sessions[s.id]; return f === "pairs" ? c.pairs : c[state.lang][f]; }
   return isTh() && f !== "pairs" ? TH.sessions[s.id][f] : s[f];
 };
 const eLabel = e => e.en ? e[state.lang][0] : isTh() ? TH.events[e.label][0] : e.label;
 const eNote = e => e.en ? e[state.lang][1] : isTh() ? TH.events[e.label][1] : e.note;
 const pickLang = o => ({ title: o.title[state.lang], lede: o.lede[state.lang], look: o.look[state.lang], warn: o.warn[state.lang] });
 const phaseText = key => {
-  if (isCmd()) {
+  if (hasData()) {
+    if (key === "weekend") return INSTR.crypto.phases.weekend[state.lang];
     if (key === "break") return pickLang(BREAK);
     if (key === "closed") return pickLang(CLOSED_CMD);
     const ph = INSTR[state.instr].phases;
@@ -766,7 +862,7 @@ function applyStatic() {
   document.querySelectorAll("[data-i18n]").forEach(el => { el.textContent = t(el.dataset.i18n); });
   $("cities").setAttribute("aria-label", t("centres"));
   document.querySelectorAll("#instrSeg button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.instr === state.instr)));
-  $("lgClosed").textContent = t(isCmd() ? "mktClosed" : "fxClosed");
+  $("lgClosed").textContent = t(state.instr === "fx" ? "fxClosed" : "mktClosed");
   $("langTh").setAttribute("aria-pressed", String(isTh()));
   $("langEn").setAttribute("aria-pressed", String(!isTh()));
   const sel = $("tz");
@@ -883,7 +979,12 @@ function* daysAround(tz, a, b, pad = 1) {
 
 const NY = "America/New_York";
 // FX: Sun 17:00 – Fri 17:00 New York. Gold/oil (CME): Sun 18:00 – Fri 17:00 with a daily 17:00–18:00 break.
+function fxWeekendAt(t) {
+  const w = wall(NY, t);
+  return w.wd === 6 || (w.wd === 5 && w.h >= 17) || (w.wd === 0 && w.h < 17);
+}
 function marketOpenAt(t) {
+  if (isCrypto()) return true;
   const w = wall(NY, t);
   const reopen = isCmd() ? 18 : 17;
   if (w.wd === 6) return false;
@@ -894,6 +995,7 @@ function marketOpenAt(t) {
 }
 function weekendIntervals(a, b) {
   const out = [];
+  if (isCrypto()) return out;
   const reopen = isCmd() ? 18 : 17;
   for (const d of daysAround(NY, a, b, 3)) {
     if (d.wd === 5) out.push([zoned(NY, d.y, d.m, d.d, 17, 0), zoned(NY, d.y, d.m, d.d + 2, reopen, 0), "weekend"]);
@@ -928,8 +1030,7 @@ function eventOccurrences(a, b) {
   const out = [];
   for (const e of curEvents()) {
     for (const d of daysAround(e.tz, a, b)) {
-      if (d.wd === 0 || d.wd === 6) continue;
-      if (e.days && !e.days.includes(d.wd)) continue;
+      if (e.days ? !e.days.includes(d.wd) : (!e.daily && (d.wd === 0 || d.wd === 6))) continue;
       const t = zoned(e.tz, d.y, d.m, d.d, e.t[0], e.t[1]);
       if (t >= a && t < b && marketOpenAt(e.edge ? t - 60000 : t)) out.push({ t, e });
     }
@@ -947,7 +1048,7 @@ const state = {
   tz: store.get("tz", detectedTz),
   h12: store.get("h12", false),
   lang: LANGS.includes(store.get("lang", "th")) ? store.get("lang", "th") : "th",
-  instr: ["fx", "gold", "oil"].includes(store.get("instr", "fx")) ? store.get("instr", "fx") : "fx",
+  instr: ["fx", "gold", "oil", "crypto"].includes(store.get("instr", "fx")) ? store.get("instr", "fx") : "fx",
   offsetMin: 0,
   win: store.get("win", { start: "14:00", end: "18:00" })
 };
@@ -989,18 +1090,18 @@ function analyse(t) {
   const open = marketOpenAt(t);
   const active = SESSIONS.filter((s, i) => occ[i].some(o => o.start <= t && t < o.end));
   const W = INSTR[state.instr].weights;
-  let score = active.reduce((n, s) => n + W[s.id], 0);
+  let score = active.reduce((n, s) => n + W[s.id], INSTR[state.instr].base || 0);
   const nyw = wall(NY, t);
   const rollover = !isCmd() && open && nyw.wd >= 1 && nyw.wd <= 4 && nyw.h === 17;
   const inBreak = isCmd() && nyw.wd >= 1 && nyw.wd <= 4 && nyw.h === 17;
   const weeklyOpen = open && nyw.wd === 0 && nyw.h >= (isCmd() ? 18 : 17) && nyw.h < (isCmd() ? 20 : 19);
-  const key = open ? active.map(s => s.id).sort().join(",") : inBreak ? "break" : "closed";
+  const key = isCrypto() && fxWeekendAt(t) ? "weekend" : open ? active.map(s => s.id).sort().join(",") : inBreak ? "break" : "closed";
   return { t, closed, occ, open, active, score: open ? score : -1, key, rollover, weeklyOpen };
 }
 function scoreAt(t, occ, closed) {
   if (closed.some(([x, y]) => t >= x && t < y)) return -1;
-  let n = 0;
   const W = INSTR[state.instr].weights;
+  let n = INSTR[state.instr].base || 0;
   SESSIONS.forEach((s, i) => { if (occ[i].some(o => o.start <= t && t < o.end)) n += W[s.id]; });
   return n;
 }
@@ -1036,7 +1137,8 @@ function renderPhase(A) {
   [...$("liqBars").children].forEach((el, i) => el.classList.toggle("on", i < level));
   const LT = liqText(L);
   $("liqLabel").textContent = t("liquidity", { l: A.rollover ? t("veryThin") : LT.label });
-  $("liqNote").textContent = A.rollover ? t("rolloverHour") : A.key === "break" ? t("breakHour") : LT.note;
+  $("liqNote").textContent = A.rollover ? t("rolloverHour") : A.key === "break" ? t("breakHour")
+    : isCrypto() ? INSTR.crypto.notes[state.lang][A.key === "weekend" ? "weekend" : (PHASE_GROUP[A.key] || "thin")] : LT.note;
 
   const alerts = [];
   if (A.rollover) alerts.push(t("alRoll"));
@@ -1049,7 +1151,14 @@ function renderPhase(A) {
   if (!isCmd() && A.open && dom.d >= lastDay - 1) alerts.push(t("alMonth"));
   if (state.instr === "oil" && A.open && nyw.wd === 3 && nyw.h < 12) alerts.push(t("alEia"));
   if (state.instr === "oil" && A.open && nyw.wd === 2 && nyw.h >= 12 && nyw.h < 17) alerts.push(t("alApi"));
-  if (state.instr === "gold" && A.open && nyw.wd === 5 && nyw.d <= 7 && nyw.h < 12) alerts.push(t("alNfp"));
+  if ((state.instr === "gold" || isCrypto()) && A.open && nyw.wd === 5 && nyw.d <= 7 && nyw.h < 12) alerts.push(t("alNfp"));
+  if (isCrypto()) {
+    if (A.key === "weekend") alerts.push(t("alCmeGap"));
+    const u = wall("UTC", A.t);
+    if (u.wd === 5 && u.h < 8) alerts.push(t("alExpiry"));
+    const toFunding = (8 - (u.h % 8)) * 60 - u.mi;
+    if (toFunding <= 30) alerts.push(t("alFunding", { d: fmtDur(toFunding * 60000) }));
+  }
   const al = $("phaseAlert");
   al.hidden = !alerts.length;
   al.innerHTML = alerts.join("<br>");
@@ -1067,7 +1176,7 @@ function renderCities(A) {
       const f = (A.t - cur.start) / (cur.end - cur.start);
       prog = '<div class="prog"><i style="width:' + (f * 100).toFixed(1) + '%"></i></div>';
     } else {
-      pill = '<span class="pill">' + t(A.open ? "closed" : A.key === "break" ? "brk" : "weekend") + "</span>";
+      pill = '<span class="pill">' + t(A.key === "weekend" ? "weekend" : A.open ? "closed" : A.key === "break" ? "brk" : "weekend") + "</span>";
       sub = next ? t("opensIn", { d: fmtDur(next.start - A.t) }) : "";
       prog = '<div class="prog"><i style="width:0"></i></div>';
     }
