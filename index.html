@@ -48,6 +48,8 @@
 :lang(th) .eyebrow, :lang(th) .cols2 h3, :lang(th) .card h3.sub, :lang(th) .pill { letter-spacing: 0; text-transform: none; font-family: var(--font-body); font-weight: 600; }
 :lang(th) body { line-height: 1.65; }
 .lang-seg button { font-weight: 600; letter-spacing: .04em; }
+.instr-seg button[aria-pressed="true"] { background: var(--accent); color: var(--surface); }
+footer p { margin: 0 0 8px; }
 html, body { margin: 0; }
 body {
   background: var(--bg); color: var(--ink);
@@ -101,7 +103,7 @@ ul.ticks { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
 ul.ticks li { position: relative; padding-left: 16px; font-size: 14px; }
 ul.ticks li::before { content: ""; position: absolute; left: 0; top: .62em; width: 7px; height: 7px; border-radius: 50%; background: var(--good); }
 ul.ticks.warn li::before { background: var(--warn); border-radius: 1px; transform: rotate(45deg); }
-.alert { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border-radius: 10px; border: 1px solid color-mix(in srgb, var(--warn) 45%, transparent); background: color-mix(in srgb, var(--warn) 10%, transparent); font-size: 13.5px; }
+.alert { padding: 10px 12px; border-radius: 10px; border: 1px solid color-mix(in srgb, var(--warn) 45%, transparent); background: color-mix(in srgb, var(--warn) 10%, transparent); font-size: 13.5px; }
 .alert b { color: var(--warn); }
 
 /* City tiles */
@@ -211,6 +213,11 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
     <div class="controls">
       <label for="tz" data-i18n="tzLabel">Your time zone</label>
       <select id="tz"></select>
+      <div class="seg instr-seg" role="group" id="instrSeg">
+        <button type="button" data-instr="fx" aria-pressed="true">FX</button>
+        <button type="button" data-instr="gold" aria-pressed="false" data-i18n="i_gold">Gold</button>
+        <button type="button" data-instr="oil" aria-pressed="false" data-i18n="i_oil">Oil</button>
+      </div>
       <div class="seg lang-seg" role="group" aria-label="Language / ภาษา">
         <button type="button" id="langTh" aria-pressed="true" lang="th">TH</button>
         <button type="button" id="langEn" aria-pressed="false" lang="en">EN</button>
@@ -233,7 +240,7 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
       </div>
     </div>
     <div class="phase" id="phase">
-      <div class="eyebrow" data-i18n="tradingIn">You are trading in</div>
+      <div class="eyebrow" id="tradingIn">You are trading in</div>
       <h1 id="phaseTitle"></h1>
       <p id="phaseLede"></p>
       <div class="liq">
@@ -269,7 +276,7 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
       <span><i class="sw" style="--c:var(--tky)"></i><span data-i18n="n_tokyo">Tokyo</span></span>
       <span><i class="sw" style="--c:var(--ldn)"></i><span data-i18n="n_london">London</span></span>
       <span><i class="sw" style="--c:var(--ny)"></i><span data-i18n="n_newyork">New York</span></span>
-      <span><i class="sw hatch"></i><span data-i18n="lgClosed">FX market closed</span></span>
+      <span><i class="sw hatch"></i><span id="lgClosed">Market closed</span></span>
       <span><i class="sw win"></i><span data-i18n="lgWin">Your trading window</span></span>
       <span data-i18n="lgEvent">◇ Key daily event (hover for details)</span>
     </div>
@@ -294,8 +301,9 @@ footer { color: var(--muted); font-size: 12.5px; max-width: 80ch; }
     </aside>
   </section>
 
-  <footer data-i18n="footer">
-    Session hours follow common FX conventions (Sydney 07:00–16:00, Tokyo 09:00–18:00, London 08:00–17:00 and New York 08:00–17:00, each in local time, with daylight saving applied automatically). The spot FX week runs from Sunday 17:00 to Friday 17:00 New York time. Bank holidays and central-bank meeting calendars are not tracked here, so check an economic calendar before trading news. The activity curve is a rough estimate based on which centres are open, not live volume data. This is an educational aid, not trading advice.
+  <footer>
+    <p data-i18n="footer">Session hours follow common FX conventions (Sydney 07:00–16:00, Tokyo 09:00–18:00, London 08:00–17:00 and New York 08:00–17:00, each in local time, with daylight saving applied automatically). The spot FX week runs from Sunday 17:00 to Friday 17:00 New York time. Bank holidays and central-bank meeting calendars are not tracked here, so check an economic calendar before trading news. The activity curve is a rough estimate based on which centres are open, not live volume data. This is an educational aid, not trading advice.</p>
+    <p data-i18n="footerCmd"></p>
   </footer>
 </div>
 
@@ -429,7 +437,15 @@ const UI = {
     noMain: "No main session in core hours", setWin: "Set a start and end time to see which sessions your window covers.",
     insideWin: "You are inside your window now ({a} – {b}).", nextWin: "Next window: {a} – {b}.",
     mostly: " You mostly trade the {s} session.", thin: " Liquidity will be thin.",
-    dur: { d: "d ", h: "h ", m: "m" }
+    dur: { d: "d ", h: "h ", m: "m" },
+    i_fx: "FX", i_gold: "Gold", i_oil: "Oil", mktClosed: "Market closed", fxClosed: "FX market closed", brk: "Break",
+    breakHour: "Daily futures break", alBreak: "<b>Daily break.</b> Gold and oil futures pause 17:00–18:00 New York time. Expect no quotes or very wide spreads.",
+    alWeeklyCmd: "<b>Weekly open.</b> Futures reopened at 18:00 New York time. Prices can gap from Friday's close.",
+    alEia: "<b>EIA day.</b> The weekly US oil inventory report lands at 10:30 New York time. Expect sharp moves.",
+    alApi: "<b>API tonight.</b> API inventory data comes out at 16:30 New York time, a preview of tomorrow's EIA report.",
+    alNfp: "<b>First Friday.</b> US payrolls usually land at 08:30 New York time. Gold often moves hard.",
+    weeklyCloseNoteCmd: "Gold and oil futures close for the weekend",
+    footerCmd: "Gold and oil follow CME futures hours: Sunday 18:00 to Friday 17:00 New York time, with a daily break from 17:00 to 18:00. Spot and CFD hours at your broker may differ slightly. Brent is shown on the same hours for simplicity; ICE Brent opens a little later on Sunday."
   },
   th: {
     tzLabel: "เขตเวลาของคุณ", detected: "ตรวจพบ", backLive: "กลับไปเวลาปัจจุบัน", tradingIn: "ตอนนี้คุณกำลังเทรดในช่วง",
@@ -454,7 +470,15 @@ const UI = {
     noMain: "ไม่มีเซสชันหลักที่อยู่ในช่วงเวลาทำการ", setWin: "ใส่เวลาเริ่มและเวลาสิ้นสุด เพื่อดูว่าช่วงเวลาของคุณครอบคลุมเซสชันใดบ้าง",
     insideWin: "ตอนนี้อยู่ในช่วงเวลาเทรดของคุณ ({a} – {b})", nextWin: "ช่วงเทรดถัดไป: {a} – {b}",
     mostly: " ส่วนใหญ่คุณเทรดในเซสชัน{s}", thin: " สภาพคล่องจะค่อนข้างบาง",
-    dur: { d: " วัน ", h: " ชม. ", m: " นาที" }
+    dur: { d: " วัน ", h: " ชม. ", m: " นาที" },
+    i_fx: "FX", i_gold: "ทองคำ", i_oil: "น้ำมัน", mktClosed: "ตลาดปิด", fxClosed: "ตลาด FX ปิด", brk: "พักตลาด",
+    breakHour: "ช่วงพักตลาดฟิวเจอร์สประจำวัน", alBreak: "<b>พักตลาดประจำวัน</b> ฟิวเจอร์สทองและน้ำมันหยุดพัก 17:00–18:00 ตามเวลานิวยอร์ก อาจไม่มีราคาหรือสเปรดกว้างมาก",
+    alWeeklyCmd: "<b>ตลาดเพิ่งเปิดสัปดาห์</b> ฟิวเจอร์สกลับมาเปิดเวลา 18:00 ตามเวลานิวยอร์ก ราคาอาจกระโดดจากราคาปิดวันศุกร์",
+    alEia: "<b>วันรายงาน EIA</b> รายงานสต็อกน้ำมันสหรัฐฯ รายสัปดาห์ออกเวลา 10:30 ตามเวลานิวยอร์ก ระวังราคาวิ่งแรง",
+    alApi: "<b>คืนนี้มีตัวเลข API</b> สต็อกน้ำมัน API ออกเวลา 16:30 ตามเวลานิวยอร์ก เป็นตัวเลขนำก่อนรายงาน EIA พรุ่งนี้",
+    alNfp: "<b>ศุกร์แรกของเดือน</b> ตัวเลข Non-Farm Payrolls มักออกเวลา 08:30 ตามเวลานิวยอร์ก ทองมักวิ่งแรง",
+    weeklyCloseNoteCmd: "ฟิวเจอร์สทองและน้ำมันปิดช่วงสุดสัปดาห์",
+    footerCmd: "ทองและน้ำมันใช้เวลาของฟิวเจอร์ส CME คือวันอาทิตย์ 18:00 ถึงวันศุกร์ 17:00 ตามเวลานิวยอร์ก และพักทุกวัน 17:00–18:00 เวลา spot หรือ CFD ของโบรกเกอร์อาจต่างไปเล็กน้อย Brent ใช้เวลาเดียวกันเพื่อความง่าย แต่ ICE Brent เปิดวันอาทิตย์ช้ากว่าเล็กน้อย"
   }
 };
 UI.en.n_sydney = "Sydney"; UI.en.n_tokyo = "Tokyo"; UI.en.n_london = "London"; UI.en.n_newyork = "New York";
@@ -545,6 +569,172 @@ const TH = {
   }
 };
 
+/* ---------- Gold & oil ---------- */
+const BREAK = {
+  title: { en: "Daily futures break", th: "ช่วงพักตลาดประจำวัน" },
+  lede: { en: "CME gold and oil futures pause from 17:00 to 18:00 New York time. Most brokers stop quoting or widen spreads a lot.", th: "ฟิวเจอร์สทองและน้ำมันของ CME หยุดพักตั้งแต่ 17:00 ถึง 18:00 ตามเวลานิวยอร์ก โบรกเกอร์ส่วนใหญ่หยุดให้ราคาหรือถ่างสเปรดกว้างมาก" },
+  look: { en: ["Nothing to trade; review the day and plan levels"], th: ["ไม่มีอะไรให้เทรด ใช้เวลาทบทวนวันนี้และวางแผนระดับราคา"] },
+  warn: { en: ["Very wide spreads when quotes return at 18:00 ET", "Pending orders can fill badly at the reopen"], th: ["สเปรดกว้างมากตอนกลับมาเปิด 18:00 ET", "ออเดอร์ที่ตั้งรอไว้อาจถูกแมตช์ในราคาที่แย่ตอนเปิดใหม่"] }
+};
+const CLOSED_CMD = {
+  title: { en: "Weekend: market closed", th: "สุดสัปดาห์: ตลาดปิด" },
+  lede: { en: "Gold and oil futures are shut from Friday 17:00 to Sunday 18:00 New York time. News still happens, so the open can gap.", th: "ฟิวเจอร์สทองและน้ำมันปิดตั้งแต่วันศุกร์ 17:00 ถึงวันอาทิตย์ 18:00 ตามเวลานิวยอร์ก แต่ข่าวยังเกิดขึ้นได้ ราคาเปิดจึงอาจกระโดด" },
+  look: { en: ["Weekend geopolitics: Middle East, Russia, sanctions, OPEC+ statements", "Next week's calendar: CPI, payrolls, FOMC, EIA", "Key levels from the weekly chart"], th: ["ข่าวภูมิรัฐศาสตร์ช่วงสุดสัปดาห์ เช่น ตะวันออกกลาง รัสเซีย มาตรการคว่ำบาตร และแถลงการณ์ OPEC+", "ปฏิทินข่าวสัปดาห์หน้า เช่น CPI, Non-Farm, FOMC, EIA", "ระดับราคาสำคัญจากกราฟรายสัปดาห์"] },
+  warn: { en: ["Gap risk at the Sunday open; stops can fill far from their level", "Quotes you see now may be stale"], th: ["ความเสี่ยง gap ตอนเปิดวันอาทิตย์ สต็อปอาจถูกแมตช์ห่างจากที่ตั้งไว้มาก", "ราคาที่เห็นตอนนี้อาจเป็นราคาเก่า"] }
+};
+const INSTR = {
+  fx: { weights: { sydney: 1, tokyo: 2, london: 4, newyork: 3 } },
+  gold: {
+    weights: { sydney: 0.5, tokyo: 2, london: 4, newyork: 4 },
+    sessions: {
+      sydney: {
+        pairs: ["XAU/USD", "XAU/AUD"],
+        en: { tag: "Early Asia. Gold barely moves.", character: "Very thin liquidity. Price usually holds near the New York close until Shanghai opens.",
+          look: ["Gaps at the weekly open after weekend news", "Reaction to late US headlines"], warn: ["Wide spreads straight after the daily break", "Stop runs on tiny volume"] },
+        th: { tag: "ช่วงเช้าตรู่ของเอเชีย ทองแทบไม่ขยับ", character: "สภาพคล่องบางมาก ราคามักทรงตัวใกล้ราคาปิดนิวยอร์กจนกว่าเซี่ยงไฮ้จะเปิด",
+          look: ["gap ตอนเปิดสัปดาห์หลังข่าวช่วงสุดสัปดาห์", "ปฏิกิริยาต่อข่าวสหรัฐฯ ช่วงดึก"], warn: ["สเปรดกว้างหลังช่วงพักตลาดประจำวัน", "การกวาดสต็อปจากวอลุ่มน้อย"] }
+      },
+      tokyo: {
+        pairs: ["XAU/USD", "XAU/JPY", "SGE Au99.99"],
+        en: { tag: "China and India set physical demand.", character: "Moderate liquidity led by the Shanghai Gold Exchange. Gold often ranges here and builds the levels London trades later.",
+          look: ["Shanghai Gold Benchmark at 10:15 and 14:15 Beijing time", "The Asian high and low as levels for London", "Strong Chinese buying (a Shanghai premium) can lift prices", "Yen moves and safe-haven flows"],
+          warn: ["Breakouts often fail before London opens", "Chinese and Indian holidays reduce demand"] },
+        th: { tag: "จีนและอินเดียเป็นผู้กำหนดความต้องการทองจริง", character: "สภาพคล่องปานกลาง นำโดย Shanghai Gold Exchange ทองมักแกว่งในกรอบและสร้างระดับราคาที่ลอนดอนจะเทรดต่อ",
+          look: ["Shanghai Gold Benchmark เวลา 10:15 และ 14:15 (เวลาปักกิ่ง)", "จุดสูงและต่ำของเอเชียที่ใช้เป็นระดับสำหรับลอนดอน", "แรงซื้อจากจีนที่แรง (ราคาเซี่ยงไฮ้สูงกว่าตลาดโลก) ดันราคาขึ้นได้", "การเคลื่อนไหวของเงินเยนและแรงซื้อสินทรัพย์ปลอดภัย"],
+          warn: ["เบรกเอาต์มักล้มเหลวก่อนลอนดอนเปิด", "วันหยุดจีนและอินเดียทำให้ความต้องการลดลง"] }
+      },
+      london: {
+        pairs: ["XAU/USD", "XAU/EUR", "XAU/GBP", "XAG/USD"],
+        en: { tag: "The heart of the physical bullion market.", character: "London is the largest OTC gold market. The LBMA Gold Price auctions set the global benchmark twice a day.",
+          look: ["LBMA Gold Price at 10:30 (AM) and 15:00 (PM) London time", "Breaks of the Asian range", "EUR/USD and the dollar index; a weaker dollar supports gold"],
+          warn: ["False breaks in the first hour", "Volatility around the LBMA auctions", "A midday lull before New York"] },
+        th: { tag: "หัวใจของตลาดทองแท่งโลก", character: "ลอนดอนเป็นตลาดทอง OTC ที่ใหญ่ที่สุดในโลก การประมูล LBMA Gold Price กำหนดราคาอ้างอิงโลกวันละ 2 รอบ",
+          look: ["LBMA Gold Price เวลา 10:30 (รอบเช้า) และ 15:00 (รอบบ่าย) ตามเวลาลอนดอน", "การเบรกกรอบราคาเอเชีย", "EUR/USD และดัชนีดอลลาร์ ดอลลาร์อ่อนมักหนุนทอง"],
+          warn: ["เบรกหลอกในชั่วโมงแรก", "ความผันผวนช่วงประมูล LBMA", "ตลาดเงียบช่วงเที่ยงก่อนนิวยอร์กเข้า"] }
+      },
+      newyork: {
+        pairs: ["XAU/USD", "GC (COMEX)", "XAG/USD", "GLD"],
+        en: { tag: "COMEX futures and US data drive gold.", character: "COMEX gold futures dominate. US data, the Fed and real yields cause the biggest moves of the day.",
+          look: ["US data at 08:30 ET: CPI, payrolls, PCE", "COMEX core hours 08:20–13:30 ET", "FOMC decisions at 14:00 ET on meeting days", "US real yields and the dollar index"],
+          warn: ["Sharp spikes and slippage on major data", "Thin trading after the 13:30 ET COMEX close", "Daily break 17:00–18:00 ET"] },
+        th: { tag: "ฟิวเจอร์ส COMEX และข่าวสหรัฐฯ คุมราคาทอง", character: "ฟิวเจอร์สทอง COMEX มีบทบาทหลัก ข่าวสหรัฐฯ, Fed และ real yield ทำให้ราคาวิ่งแรงที่สุดของวัน",
+          look: ["ข่าวสหรัฐฯ 08:30 ET เช่น CPI, Non-Farm, PCE", "ช่วงเวลาหลักของ COMEX 08:20–13:30 ET", "ประกาศดอกเบี้ย FOMC 14:00 ET ในวันประชุม", "real yield สหรัฐฯ และดัชนีดอลลาร์"],
+          warn: ["ราคากระชากและสลิปเพจช่วงข่าวใหญ่", "ตลาดบางลงหลัง COMEX ปิด 13:30 ET", "พักตลาดประจำวัน 17:00–18:00 ET"] }
+      }
+    },
+    phases: {
+      asia: { en: { title: "Asian gold session", lede: "China and India drive physical demand. Gold usually ranges while Shanghai is open.",
+          look: ["The Asian high and low as levels for London", "Shanghai Gold Benchmark at 10:15 and 14:15 Beijing time", "Reaction to overnight US yields and the dollar"], warn: ["Thin liquidity; moves on small volume often reverse", "Breakouts often fail before London opens"] },
+        th: { title: "ทองช่วงเอเชีย", lede: "จีนและอินเดียขับเคลื่อนความต้องการทองจริง ทองมักแกว่งในกรอบระหว่างที่เซี่ยงไฮ้เปิด",
+          look: ["จุดสูงและต่ำของเอเชียที่ใช้เป็นระดับสำหรับลอนดอน", "Shanghai Gold Benchmark 10:15 และ 14:15 (เวลาปักกิ่ง)", "ปฏิกิริยาต่อ yield สหรัฐฯ และดอลลาร์จากเมื่อคืน"], warn: ["สภาพคล่องบาง ราคาที่วิ่งจากวอลุ่มน้อยมักกลับตัว", "เบรกเอาต์มักล้มเหลวก่อนลอนดอนเปิด"] } },
+      handoff: { en: { title: "London opens on gold", lede: "London's bullion market comes online and gold often picks a direction for the day.",
+          look: ["A sweep or break of the Asian range", "Positioning ahead of the 10:30 London LBMA auction"], warn: ["The first break of the range is often fake", "Spreads can flicker wider on the open"] },
+        th: { title: "ลอนดอนเปิด: ทองเริ่มมีทิศทาง", lede: "ตลาดทองแท่งลอนดอนเริ่มทำงาน ทองมักเลือกทิศทางของวันในช่วงนี้",
+          look: ["การกวาดหรือเบรกกรอบเอเชีย", "การเข้าตำแหน่งก่อนประมูล LBMA 10:30 (เวลาลอนดอน)"], warn: ["การเบรกกรอบครั้งแรกมักเป็นการหลอก", "สเปรดอาจกว้างชั่วขณะตอนเปิด"] } },
+      london: { en: { title: "London gold session", lede: "The world's largest OTC bullion market. Price discovery centres on the LBMA auctions.",
+          look: ["LBMA Gold Price at 10:30 and 15:00 London", "Trend continuation after the Asian range breaks", "European data and EUR moves"], warn: ["Volatility around the auctions", "A midday lull before New York"] },
+        th: { title: "ทองช่วงลอนดอน", lede: "ตลาดทอง OTC ที่ใหญ่ที่สุดในโลก การค้นหาราคาอยู่ที่การประมูล LBMA",
+          look: ["LBMA Gold Price 10:30 และ 15:00 (เวลาลอนดอน)", "เทรนด์ที่ไปต่อหลังเบรกกรอบเอเชีย", "ข่าวยุโรปและการเคลื่อนไหวของ EUR"], warn: ["ความผันผวนช่วงประมูล", "ตลาดเงียบช่วงเที่ยงก่อนนิวยอร์กเข้า"] } },
+      overlap: { en: { title: "London–New York: gold's busiest hours", lede: "COMEX futures and London spot trade together. US data and yields hit gold hardest here.",
+          look: ["US data at 08:30 ET: CPI, payrolls, PCE", "The dollar index and US real yields", "The 15:00 London LBMA PM auction", "COMEX volume confirming breakouts"], warn: ["Sharp spikes and slippage on major releases", "Stop runs around round numbers", "Reversals as London closes"] },
+        th: { title: "ลอนดอน–นิวยอร์ก: ช่วงที่ทองคึกคักที่สุด", lede: "ฟิวเจอร์ส COMEX และตลาด spot ลอนดอนเทรดพร้อมกัน ข่าวสหรัฐฯ และ yield กระทบทองแรงที่สุดช่วงนี้",
+          look: ["ข่าวสหรัฐฯ 08:30 ET เช่น CPI, Non-Farm, PCE", "ดัชนีดอลลาร์และ real yield สหรัฐฯ", "ประมูล LBMA รอบบ่าย 15:00 (เวลาลอนดอน)", "วอลุ่ม COMEX ที่ยืนยันการเบรกเอาต์"], warn: ["ราคากระชากและสลิปเพจช่วงข่าวใหญ่", "การกวาดสต็อปแถวเลขกลม", "ราคากลับตัวเมื่อลอนดอนปิด"] } },
+      nyPm: { en: { title: "New York afternoon", lede: "COMEX core hours end at 13:30 ET. Gold quiets down unless the Fed is speaking.",
+          look: ["FOMC decisions at 14:00 ET on meeting days", "Consolidation after the morning move"], warn: ["Thin, choppy trading after the COMEX close", "Friday afternoon profit taking"] },
+        th: { title: "นิวยอร์กช่วงบ่าย", lede: "ช่วงเวลาหลักของ COMEX จบที่ 13:30 ET ทองจะเงียบลง เว้นแต่ Fed มีประกาศหรือแถลง",
+          look: ["ประกาศดอกเบี้ย FOMC 14:00 ET ในวันประชุม", "การพักตัวหลังราคาวิ่งช่วงเช้า"], warn: ["ตลาดบางและสะเปะสะปะหลัง COMEX ปิด", "การปิดทำกำไรบ่ายวันศุกร์"] } },
+      thin: { en: { title: "Quiet hours for gold", lede: "Neither Shanghai nor the West is active. Gold drifts on low volume.",
+          look: ["Plan levels for the next session"], warn: ["Wide spreads", "Random spikes on headlines"] },
+        th: { title: "ช่วงเงียบของทอง", lede: "ทั้งเซี่ยงไฮ้และตลาดตะวันตกยังไม่เปิด ทองลอยตัวด้วยวอลุ่มน้อย",
+          look: ["วางแผนระดับราคาสำหรับเซสชันถัดไป"], warn: ["สเปรดกว้าง", "ราคากระชากแบบสุ่มตามพาดหัวข่าว"] } }
+    },
+    events: [
+      { s: "tokyo", tz: "Asia/Shanghai", t: [10, 15], marker: true, en: ["Shanghai Gold Benchmark (AM)", "China's yuan gold reference price"], th: ["ราคาอ้างอิงทองเซี่ยงไฮ้ (เช้า)", "ราคาอ้างอิงทองในสกุลหยวนของจีน"] },
+      { s: "tokyo", tz: "Asia/Shanghai", t: [14, 15], marker: true, en: ["Shanghai Gold Benchmark (PM)", "China's yuan gold reference price"], th: ["ราคาอ้างอิงทองเซี่ยงไฮ้ (บ่าย)", "ราคาอ้างอิงทองในสกุลหยวนของจีน"] },
+      { s: "london", tz: "Europe/London", t: [8, 0], marker: false, en: ["London open", "Bullion desks start trading"], th: ["ลอนดอนเปิด", "ดีลเลอร์ทองแท่งเริ่มซื้อขาย"] },
+      { s: "london", tz: "Europe/London", t: [10, 30], marker: true, en: ["LBMA Gold Price AM", "Global benchmark auction"], th: ["LBMA Gold Price รอบเช้า", "การประมูลราคาอ้างอิงทองโลก"] },
+      { s: "london", tz: "Europe/London", t: [15, 0], marker: true, en: ["LBMA Gold Price PM", "Global benchmark auction"], th: ["LBMA Gold Price รอบบ่าย", "การประมูลราคาอ้างอิงทองโลก"] },
+      { s: "newyork", tz: "America/New_York", t: [8, 20], marker: true, en: ["COMEX core hours begin", "Gold futures volume picks up"], th: ["COMEX เริ่มช่วงเวลาหลัก", "วอลุ่มฟิวเจอร์สทองเพิ่มขึ้น"] },
+      { s: "newyork", tz: "America/New_York", t: [8, 30], marker: true, en: ["US data", "CPI, payrolls, PCE and other major releases"], th: ["ข่าวสหรัฐฯ", "CPI, Non-Farm, PCE และข่าวสำคัญอื่น ๆ"] },
+      { s: "newyork", tz: "America/New_York", t: [13, 30], marker: true, en: ["COMEX core hours end", "Liquidity thins out"], th: ["COMEX จบช่วงเวลาหลัก", "สภาพคล่องลดลง"] },
+      { s: "newyork", tz: "America/New_York", t: [14, 0], marker: false, meeting: true, en: ["FOMC decision", "Meeting days only"], th: ["ประกาศดอกเบี้ย FOMC", "เฉพาะวันประชุม"] },
+      { s: "newyork", tz: "America/New_York", t: [17, 0], marker: true, edge: true, en: ["Daily break", "Futures pause until 18:00 ET"], th: ["พักตลาดประจำวัน", "ฟิวเจอร์สหยุดพักถึง 18:00 ET"] }
+    ]
+  },
+  oil: {
+    weights: { sydney: 0.5, tokyo: 1.5, london: 3, newyork: 5 },
+    sessions: {
+      sydney: {
+        pairs: ["WTI", "Brent"],
+        en: { tag: "Oil is barely trading.", character: "Very thin. Prices hold near the New York settlement unless there is breaking news.",
+          look: ["Weekend geopolitical headlines at the Monday open"], warn: ["Wide spreads and gaps", "Low-volume spikes"] },
+        th: { tag: "น้ำมันแทบไม่มีการซื้อขาย", character: "บางมาก ราคามักทรงตัวใกล้ราคาปิดของนิวยอร์ก เว้นแต่มีข่าวด่วน",
+          look: ["ข่าวภูมิรัฐศาสตร์ช่วงสุดสัปดาห์ตอนเปิดวันจันทร์"], warn: ["สเปรดกว้างและราคากระโดด", "ราคากระชากจากวอลุ่มน้อย"] }
+      },
+      tokyo: {
+        pairs: ["WTI", "Brent", "Dubai", "INE SC"],
+        en: { tag: "Asian demand, thin futures liquidity.", character: "Asia buys most of the world's seaborne crude, but futures liquidity is light. Dubai/Oman and Shanghai crude (INE) trade now.",
+          look: ["Chinese data: imports, PMIs, industrial output", "Reaction to API inventory data from the New York evening", "Middle East and OPEC+ headlines"], warn: ["Gaps on geopolitical headlines", "Moves often reverse when London opens"] },
+        th: { tag: "ความต้องการจากเอเชีย แต่สภาพคล่องฟิวเจอร์สบาง", character: "เอเชียซื้อน้ำมันดิบทางทะเลมากที่สุดในโลก แต่สภาพคล่องฟิวเจอร์สน้อย ช่วงนี้มีการซื้อขายน้ำมันดูไบ/โอมาน และน้ำมันเซี่ยงไฮ้ (INE)",
+          look: ["ข่าวจีน เช่น การนำเข้า PMI และผลผลิตอุตสาหกรรม", "ปฏิกิริยาต่อตัวเลขสต็อก API ที่ออกช่วงค่ำของนิวยอร์ก", "ข่าวตะวันออกกลางและ OPEC+"], warn: ["ราคากระโดดจากข่าวภูมิรัฐศาสตร์", "ราคาที่วิ่งมักกลับตัวเมื่อลอนดอนเปิด"] }
+      },
+      london: {
+        pairs: ["Brent", "WTI", "Gasoil"],
+        en: { tag: "Brent's home market.", character: "ICE Brent, the global benchmark, gets active as Europe opens. Brent often leads WTI until New York arrives.",
+          look: ["The Brent–WTI spread", "OPEC+ headlines and European refinery news", "Breaks of the Asian range"], warn: ["False breaks before New York", "Unconfirmed 'sources say' headlines"] },
+        th: { tag: "ตลาดบ้านของ Brent", character: "ICE Brent ซึ่งเป็นราคาอ้างอิงโลกเริ่มคึกคักเมื่อยุโรปเปิด Brent มักนำ WTI จนกว่านิวยอร์กจะเข้า",
+          look: ["ส่วนต่างราคา Brent–WTI", "ข่าว OPEC+ และข่าวโรงกลั่นในยุโรป", "การเบรกกรอบเอเชีย"], warn: ["เบรกหลอกก่อนนิวยอร์กเข้า", "ข่าวลือจาก 'แหล่งข่าว' ที่ยังไม่ยืนยัน"] }
+      },
+      newyork: {
+        pairs: ["WTI (CL)", "Brent", "RBOB", "Heating oil"],
+        en: { tag: "WTI's main session. US inventories rule.", character: "NYMEX WTI is the most traded oil contract. Volume peaks during US hours and inventory data moves price sharply.",
+          look: ["EIA inventories on Wednesdays at 10:30 ET", "API inventories on Tuesdays at 16:30 ET", "WTI settlement 14:28–14:30 ET", "Baker Hughes rig count on Fridays at 13:00 ET"],
+          warn: ["Violent moves on inventory surprises", "Contract expiry and roll around the 20th of each month", "Daily break 17:00–18:00 ET"] },
+        th: { tag: "เซสชันหลักของ WTI สต็อกน้ำมันสหรัฐฯ คุมตลาด", character: "WTI บน NYMEX เป็นสัญญาน้ำมันที่ซื้อขายมากที่สุด วอลุ่มสูงสุดช่วงเวลาสหรัฐฯ และตัวเลขสต็อกทำให้ราคาวิ่งแรง",
+          look: ["สต็อกน้ำมัน EIA ทุกวันพุธ 10:30 ET", "สต็อกน้ำมัน API ทุกวันอังคาร 16:30 ET", "ราคาปิด (settlement) WTI 14:28–14:30 ET", "จำนวนแท่นขุดเจาะ Baker Hughes ทุกวันศุกร์ 13:00 ET"],
+          warn: ["ราคาวิ่งรุนแรงเมื่อสต็อกผิดคาด", "สัญญาหมดอายุและการโรลสัญญาราววันที่ 20 ของทุกเดือน", "พักตลาดประจำวัน 17:00–18:00 ET"] }
+      }
+    },
+    phases: {
+      asia: { en: { title: "Asian oil session", lede: "Asia is the biggest crude buyer, but futures liquidity is thin. Oil mostly drifts on overnight news.",
+          look: ["Overnight headlines: OPEC+, Middle East, sanctions", "Chinese data and demand signals", "The Asian range as levels for later"], warn: ["Gaps on geopolitical headlines", "Small moves often reverse when London arrives"] },
+        th: { title: "น้ำมันช่วงเอเชีย", lede: "เอเชียเป็นผู้ซื้อน้ำมันดิบรายใหญ่ที่สุด แต่สภาพคล่องฟิวเจอร์สบาง น้ำมันมักลอยตัวตามข่าวจากเมื่อคืน",
+          look: ["ข่าวช่วงกลางคืน เช่น OPEC+ ตะวันออกกลาง และมาตรการคว่ำบาตร", "ข่าวจีนและสัญญาณความต้องการน้ำมัน", "กรอบราคาเอเชียที่ใช้เป็นระดับในภายหลัง"], warn: ["ราคากระโดดจากข่าวภูมิรัฐศาสตร์", "ราคาที่ขยับเล็กน้อยมักกลับตัวเมื่อลอนดอนเข้า"] } },
+      london: { en: { title: "London: Brent leads", lede: "ICE Brent activity rises with Europe. Brent usually sets the tone before WTI wakes up.",
+          look: ["The Brent–WTI spread", "European demand data and refinery news", "Breaks of the Asian range"], warn: ["False breaks before New York", "Headline risk from OPEC+ sources"] },
+        th: { title: "ลอนดอน: Brent นำตลาด", lede: "การซื้อขาย ICE Brent เพิ่มขึ้นเมื่อยุโรปเปิด Brent มักกำหนดทิศทางก่อนที่ WTI จะคึกคัก",
+          look: ["ส่วนต่างราคา Brent–WTI", "ข่าวความต้องการในยุโรปและข่าวโรงกลั่น", "การเบรกกรอบเอเชีย"], warn: ["เบรกหลอกก่อนนิวยอร์กเข้า", "ความเสี่ยงจากข่าวแหล่งข่าว OPEC+"] } },
+      overlap: { en: { title: "New York: oil's main session", lede: "NYMEX WTI core trading runs 09:00–14:30 ET. US inventories and data drive the biggest moves.",
+          look: ["EIA inventory report on Wednesdays at 10:30 ET", "US data at 08:30 ET and the stock market open", "Dollar moves; a weaker dollar supports oil", "WTI settlement at 14:30 ET"], warn: ["Violent spikes when EIA numbers miss expectations", "Headline whipsaw from OPEC+ and geopolitics", "Near expiry, check which contract month you trade"] },
+        th: { title: "นิวยอร์ก: เซสชันหลักของน้ำมัน", lede: "ช่วงซื้อขายหลักของ WTI บน NYMEX คือ 09:00–14:30 ET สต็อกน้ำมันและข่าวสหรัฐฯ ทำให้ราคาวิ่งแรงที่สุด",
+          look: ["รายงานสต็อก EIA ทุกวันพุธ 10:30 ET", "ข่าวสหรัฐฯ 08:30 ET และตลาดหุ้นเปิด", "การเคลื่อนไหวของดอลลาร์ ดอลลาร์อ่อนมักหนุนน้ำมัน", "ราคาปิด (settlement) WTI 14:30 ET"], warn: ["ราคากระชากรุนแรงเมื่อตัวเลข EIA ผิดคาด", "ราคาสะบัดตามข่าว OPEC+ และภูมิรัฐศาสตร์", "ช่วงใกล้หมดอายุ ตรวจสอบว่าเทรดสัญญาเดือนไหน"] } },
+      nyPm: { en: { title: "After the WTI settlement", lede: "WTI settles at 14:30 ET and Brent at 19:30 London. Activity drops after settlement.",
+          look: ["Settlement-time flows", "API inventories on Tuesdays at 16:30 ET", "Baker Hughes rig count on Fridays at 13:00 ET"], warn: ["Thin trading after settlement", "Friday position squaring before weekend headline risk"] },
+        th: { title: "หลังราคาปิด WTI", lede: "WTI ปิดราคา (settle) ที่ 14:30 ET และ Brent ที่ 19:30 ตามเวลาลอนดอน การซื้อขายลดลงหลังจากนั้น",
+          look: ["แรงซื้อขายช่วงปิดราคา", "สต็อก API ทุกวันอังคาร 16:30 ET", "จำนวนแท่นขุดเจาะ Baker Hughes ทุกวันศุกร์ 13:00 ET"], warn: ["ตลาดบางหลังปิดราคา", "การปิดสถานะวันศุกร์ก่อนความเสี่ยงข่าวสุดสัปดาห์"] } },
+      thin: { en: { title: "Quiet hours for oil", lede: "Few participants are active. Oil drifts unless there is breaking news.",
+          look: ["Plan levels for the next session"], warn: ["Wide spreads", "Sudden gaps on geopolitical headlines"] },
+        th: { title: "ช่วงเงียบของน้ำมัน", lede: "มีผู้เล่นน้อย น้ำมันลอยตัว เว้นแต่มีข่าวด่วน",
+          look: ["วางแผนระดับราคาสำหรับเซสชันถัดไป"], warn: ["สเปรดกว้าง", "ราคากระโดดกะทันหันจากข่าวภูมิรัฐศาสตร์"] } }
+    },
+    events: [
+      { s: "tokyo", tz: "Asia/Shanghai", t: [10, 0], marker: false, en: ["Chinese data", "Usual release time for NBS statistics"], th: ["ข่าวจีน", "เวลาประกาศข้อมูลสถิติ NBS ตามปกติ"] },
+      { s: "london", tz: "Europe/London", t: [8, 0], marker: true, en: ["London open", "Brent activity picks up"], th: ["ลอนดอนเปิด", "การซื้อขาย Brent เพิ่มขึ้น"] },
+      { s: "newyork", tz: "America/New_York", t: [8, 30], marker: true, en: ["US data", "Major US releases move the dollar and risk sentiment"], th: ["ข่าวสหรัฐฯ", "ข่าวสำคัญสหรัฐฯ ที่ขยับดอลลาร์และอารมณ์ตลาด"] },
+      { s: "newyork", tz: "America/New_York", t: [9, 0], marker: true, en: ["NYMEX core hours begin", "WTI volume picks up"], th: ["NYMEX เริ่มช่วงเวลาหลัก", "วอลุ่ม WTI เพิ่มขึ้น"] },
+      { s: "newyork", tz: "America/New_York", t: [10, 30], days: [3], marker: true, en: ["EIA inventory report", "Wednesdays; the biggest weekly oil event"], th: ["รายงานสต็อกน้ำมัน EIA", "ทุกวันพุธ เหตุการณ์ใหญ่ที่สุดของน้ำมันในแต่ละสัปดาห์"] },
+      { s: "newyork", tz: "America/New_York", t: [13, 0], days: [5], marker: true, en: ["Baker Hughes rig count", "Fridays; US drilling activity"], th: ["จำนวนแท่นขุดเจาะ Baker Hughes", "ทุกวันศุกร์ ตัวชี้วัดการขุดเจาะในสหรัฐฯ"] },
+      { s: "newyork", tz: "America/New_York", t: [14, 30], marker: true, en: ["WTI settlement", "Settlement window 14:28–14:30 ET"], th: ["ราคาปิด WTI", "ช่วงคำนวณราคาปิด 14:28–14:30 ET"] },
+      { s: "newyork", tz: "America/New_York", t: [16, 30], days: [2], marker: true, en: ["API inventory data", "Tuesdays; a preview of Wednesday's EIA report"], th: ["ตัวเลขสต็อก API", "ทุกวันอังคาร ตัวเลขนำก่อนรายงาน EIA วันพุธ"] },
+      { s: "newyork", tz: "America/New_York", t: [17, 0], marker: true, edge: true, en: ["Daily break", "Futures pause until 18:00 ET"], th: ["พักตลาดประจำวัน", "ฟิวเจอร์สหยุดพักถึง 18:00 ET"] },
+      { s: "london", tz: "Europe/London", t: [19, 30], marker: true, en: ["Brent settlement", "ICE settlement window 19:28–19:30 London"], th: ["ราคาปิด Brent", "ช่วงคำนวณราคาปิดของ ICE 19:28–19:30 (เวลาลอนดอน)"] }
+    ]
+  }
+};
+const PHASE_GROUP = { "london,newyork": "overlap", "london,tokyo": "handoff", "london": "london", "newyork": "nyPm", "newyork,sydney": "thin", "sydney": "thin", "sydney,tokyo": "asia", "tokyo": "asia", "": "thin" };
+const isCmd = () => state.instr !== "fx";
+const curEvents = () => isCmd() ? INSTR[state.instr].events : EVENTS;
+
 const LANGS = ["th", "en"];
 function t(k, vars) {
   let str = (UI[state.lang] && UI[state.lang][k]) ?? UI.en[k] ?? k;
@@ -553,15 +743,30 @@ function t(k, vars) {
 }
 const isTh = () => state.lang === "th";
 const sName = s => t("n_" + s.id);
-const sText = (s, f) => isTh() ? TH.sessions[s.id][f] : s[f];
-const eLabel = e => isTh() ? TH.events[e.label][0] : e.label;
-const eNote = e => isTh() ? TH.events[e.label][1] : e.note;
-const phaseText = key => { const P = PHASES[key] || PHASES[""]; return isTh() ? (TH.phases[key] || TH.phases[""]) : P; };
+const sText = (s, f) => {
+  if (isCmd()) { const c = INSTR[state.instr].sessions[s.id]; return f === "pairs" ? c.pairs : c[state.lang][f]; }
+  return isTh() && f !== "pairs" ? TH.sessions[s.id][f] : s[f];
+};
+const eLabel = e => e.en ? e[state.lang][0] : isTh() ? TH.events[e.label][0] : e.label;
+const eNote = e => e.en ? e[state.lang][1] : isTh() ? TH.events[e.label][1] : e.note;
+const pickLang = o => ({ title: o.title[state.lang], lede: o.lede[state.lang], look: o.look[state.lang], warn: o.warn[state.lang] });
+const phaseText = key => {
+  if (isCmd()) {
+    if (key === "break") return pickLang(BREAK);
+    if (key === "closed") return pickLang(CLOSED_CMD);
+    const ph = INSTR[state.instr].phases;
+    const g = PHASE_GROUP[key] || "thin";
+    return (ph[g] || ph.london)[state.lang];
+  }
+  const P = PHASES[key] || PHASES[""]; return isTh() ? (TH.phases[key] || TH.phases[""]) : P;
+};
 const liqText = L => isTh() ? { label: TH.liq[L.label][0], note: TH.liq[L.label][1] } : L;
 function applyStatic() {
   document.documentElement.lang = state.lang;
   document.querySelectorAll("[data-i18n]").forEach(el => { el.textContent = t(el.dataset.i18n); });
   $("cities").setAttribute("aria-label", t("centres"));
+  document.querySelectorAll("#instrSeg button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.instr === state.instr)));
+  $("lgClosed").textContent = t(isCmd() ? "mktClosed" : "fxClosed");
   $("langTh").setAttribute("aria-pressed", String(isTh()));
   $("langEn").setAttribute("aria-pressed", String(!isTh()));
   const sel = $("tz");
@@ -677,18 +882,22 @@ function* daysAround(tz, a, b, pad = 1) {
 }
 
 const NY = "America/New_York";
+// FX: Sun 17:00 – Fri 17:00 New York. Gold/oil (CME): Sun 18:00 – Fri 17:00 with a daily 17:00–18:00 break.
 function marketOpenAt(t) {
   const w = wall(NY, t);
+  const reopen = isCmd() ? 18 : 17;
   if (w.wd === 6) return false;
   if (w.wd === 5 && w.h >= 17) return false;
-  if (w.wd === 0 && w.h < 17) return false;
+  if (w.wd === 0 && w.h < reopen) return false;
+  if (isCmd() && w.wd >= 1 && w.wd <= 4 && w.h === 17) return false;
   return true;
 }
 function weekendIntervals(a, b) {
   const out = [];
+  const reopen = isCmd() ? 18 : 17;
   for (const d of daysAround(NY, a, b, 3)) {
-    if (d.wd !== 5) continue;
-    out.push([zoned(NY, d.y, d.m, d.d, 17, 0), zoned(NY, d.y, d.m, d.d + 2, 17, 0)]);
+    if (d.wd === 5) out.push([zoned(NY, d.y, d.m, d.d, 17, 0), zoned(NY, d.y, d.m, d.d + 2, reopen, 0), "weekend"]);
+    else if (isCmd() && d.wd >= 1 && d.wd <= 4) out.push([zoned(NY, d.y, d.m, d.d, 17, 0), zoned(NY, d.y, d.m, d.d, 18, 0), "break"]);
   }
   return out;
 }
@@ -717,11 +926,12 @@ function sessionOccurrences(s, a, b, closed) {
 }
 function eventOccurrences(a, b) {
   const out = [];
-  for (const e of EVENTS) {
+  for (const e of curEvents()) {
     for (const d of daysAround(e.tz, a, b)) {
       if (d.wd === 0 || d.wd === 6) continue;
+      if (e.days && !e.days.includes(d.wd)) continue;
       const t = zoned(e.tz, d.y, d.m, d.d, e.t[0], e.t[1]);
-      if (t >= a && t < b && marketOpenAt(t)) out.push({ t, e });
+      if (t >= a && t < b && marketOpenAt(e.edge ? t - 60000 : t)) out.push({ t, e });
     }
   }
   return out.sort((x, y) => x.t - y.t);
@@ -737,6 +947,7 @@ const state = {
   tz: store.get("tz", detectedTz),
   h12: store.get("h12", false),
   lang: LANGS.includes(store.get("lang", "th")) ? store.get("lang", "th") : "th",
+  instr: ["fx", "gold", "oil"].includes(store.get("instr", "fx")) ? store.get("instr", "fx") : "fx",
   offsetMin: 0,
   win: store.get("win", { start: "14:00", end: "18:00" })
 };
@@ -777,17 +988,20 @@ function analyse(t) {
   const occ = SESSIONS.map(s => sessionOccurrences(s, a, b, closed));
   const open = marketOpenAt(t);
   const active = SESSIONS.filter((s, i) => occ[i].some(o => o.start <= t && t < o.end));
-  let score = active.reduce((n, s) => n + s.weight, 0);
+  const W = INSTR[state.instr].weights;
+  let score = active.reduce((n, s) => n + W[s.id], 0);
   const nyw = wall(NY, t);
-  const rollover = open && nyw.wd >= 1 && nyw.wd <= 4 && nyw.h === 17;
-  const weeklyOpen = open && nyw.wd === 0 && nyw.h >= 17 && nyw.h < 19;
-  const key = open ? active.map(s => s.id).sort().join(",") : "closed";
+  const rollover = !isCmd() && open && nyw.wd >= 1 && nyw.wd <= 4 && nyw.h === 17;
+  const inBreak = isCmd() && nyw.wd >= 1 && nyw.wd <= 4 && nyw.h === 17;
+  const weeklyOpen = open && nyw.wd === 0 && nyw.h >= (isCmd() ? 18 : 17) && nyw.h < (isCmd() ? 20 : 19);
+  const key = open ? active.map(s => s.id).sort().join(",") : inBreak ? "break" : "closed";
   return { t, closed, occ, open, active, score: open ? score : -1, key, rollover, weeklyOpen };
 }
 function scoreAt(t, occ, closed) {
   if (closed.some(([x, y]) => t >= x && t < y)) return -1;
   let n = 0;
-  SESSIONS.forEach((s, i) => { if (occ[i].some(o => o.start <= t && t < o.end)) n += s.weight; });
+  const W = INSTR[state.instr].weights;
+  SESSIONS.forEach((s, i) => { if (occ[i].some(o => o.start <= t && t < o.end)) n += W[s.id]; });
   return n;
 }
 function liqFor(score) { let r = LIQ[0]; for (const l of LIQ) if (score >= l.min) r = l; return r; }
@@ -809,6 +1023,7 @@ function renderClock() {
 
 function renderPhase(A) {
   const P = phaseText(A.key);
+  $("tradingIn").textContent = t("i_" + state.instr) + " · " + t("tradingIn");
   $("phaseTitle").textContent = P.title;
   $("phaseLede").textContent = P.lede;
   $("phaseLook").innerHTML = P.look.map(x => "<li>" + esc(x) + "</li>").join("");
@@ -821,16 +1036,20 @@ function renderPhase(A) {
   [...$("liqBars").children].forEach((el, i) => el.classList.toggle("on", i < level));
   const LT = liqText(L);
   $("liqLabel").textContent = t("liquidity", { l: A.rollover ? t("veryThin") : LT.label });
-  $("liqNote").textContent = A.rollover ? t("rolloverHour") : LT.note;
+  $("liqNote").textContent = A.rollover ? t("rolloverHour") : A.key === "break" ? t("breakHour") : LT.note;
 
   const alerts = [];
   if (A.rollover) alerts.push(t("alRoll"));
-  if (A.weeklyOpen) alerts.push(t("alWeekly"));
+  if (A.key === "break") alerts.push(t("alBreak"));
+  if (A.weeklyOpen) alerts.push(t(isCmd() ? "alWeeklyCmd" : "alWeekly"));
   const nyw = wall(NY, A.t);
   if (A.open && nyw.wd === 5 && nyw.h >= 12) alerts.push(t("alFri"));
   const dom = wall(state.tz, A.t);
   const lastDay = new Date(Date.UTC(dom.y, dom.m, 0)).getUTCDate();
-  if (A.open && dom.d >= lastDay - 1) alerts.push(t("alMonth"));
+  if (!isCmd() && A.open && dom.d >= lastDay - 1) alerts.push(t("alMonth"));
+  if (state.instr === "oil" && A.open && nyw.wd === 3 && nyw.h < 12) alerts.push(t("alEia"));
+  if (state.instr === "oil" && A.open && nyw.wd === 2 && nyw.h >= 12 && nyw.h < 17) alerts.push(t("alApi"));
+  if (state.instr === "gold" && A.open && nyw.wd === 5 && nyw.d <= 7 && nyw.h < 12) alerts.push(t("alNfp"));
   const al = $("phaseAlert");
   al.hidden = !alerts.length;
   al.innerHTML = alerts.join("<br>");
@@ -848,7 +1067,7 @@ function renderCities(A) {
       const f = (A.t - cur.start) / (cur.end - cur.start);
       prog = '<div class="prog"><i style="width:' + (f * 100).toFixed(1) + '%"></i></div>';
     } else {
-      pill = '<span class="pill">' + t(A.open ? "closed" : "weekend") + "</span>";
+      pill = '<span class="pill">' + t(A.open ? "closed" : A.key === "break" ? "brk" : "weekend") + "</span>";
       sub = next ? t("opensIn", { d: fmtDur(next.start - A.t) }) : "";
       prog = '<div class="prog"><i style="width:0"></i></div>';
     }
@@ -972,10 +1191,10 @@ function renderCards(A) {
     // Key times: next occurrence of each of this session's events within/around its session
     const seen = new Set();
     const times = [];
-    for (const e of EVENTS.filter(e => e.s === s.id)) {
+    for (const e of curEvents().filter(e => e.s === s.id)) {
       const o = evs.find(o => o.e === e && o.t >= (ref ? Math.min(ref.rawStart, A.t) - 6 * 3600e3 : A.t));
-      if (!o || seen.has(e.label)) continue;
-      seen.add(e.label);
+      if (!o || seen.has(eLabel(e))) continue;
+      seen.add(eLabel(e));
       times.push(o);
     }
     times.sort((x, y) => x.t - y.t);
@@ -983,7 +1202,7 @@ function renderCards(A) {
     return '<article class="card' + (cur ? " active" : "") + '" style="--c:' + s.color + '">' +
       '<div class="card-head"><div><h2><span class="dot"></span>' + sName(s) + '</h2><div class="hours">' + esc(hours) + "</div></div>" + status + "</div>" +
       '<p class="tag">' + esc(sText(s, "tag")) + "</p>" +
-      '<div class="chips">' + s.pairs.map(p => '<span class="chip">' + p + "</span>").join("") + "</div>" +
+      '<div class="chips">' + sText(s, "pairs").map(p => '<span class="chip">' + p + "</span>").join("") + "</div>" +
       '<div><h3 class="sub">' + t("character") + '</h3><p class="tag" style="font-size:14px;color:var(--muted)">' + esc(sText(s, "character")) + "</p></div>" +
       '<div><h3 class="sub">' + t("lookFor") + '</h3><ul class="ticks">' + sText(s, "look").map(x => "<li>" + esc(x) + "</li>").join("") + "</ul></div>" +
       '<div><h3 class="sub">' + t("awareOf") + '</h3><ul class="ticks warn">' + sText(s, "warn").map(x => "<li>" + esc(x) + "</li>").join("") + "</ul></div>" +
@@ -1006,8 +1225,9 @@ function renderUpNext(A) {
     if (o.e.meeting) continue;
     items.push({ t: o.t, c: S[o.e.s].color, sess: false, label: eLabel(o.e), note: eNote(o.e) });
   }
-  for (const [x, y] of A.closed) {
-    if (x > A.t) items.push({ t: x, c: "var(--muted)", sess: true, label: t("weeklyClose"), note: t("weeklyCloseNote") });
+  for (const [x, y, kind] of A.closed) {
+    if (kind !== "weekend") continue;
+    if (x > A.t) items.push({ t: x, c: "var(--muted)", sess: true, label: t("weeklyClose"), note: t(isCmd() ? "weeklyCloseNoteCmd" : "weeklyCloseNote") });
     if (y > A.t) items.push({ t: y, c: "var(--muted)", sess: true, label: t("weeklyOpen"), note: t("weeklyOpenNote") });
   }
   items.sort((p, q) => p.t - q.t);
@@ -1086,6 +1306,9 @@ function initControls() {
   };
   const setLang = lang => { state.lang = lang; store.set("lang", lang); applyStatic(); renderAll(); };
   $("langTh").addEventListener("click", () => setLang("th"));
+  document.querySelectorAll("#instrSeg button").forEach(b => b.addEventListener("click", () => {
+    state.instr = b.dataset.instr; store.set("instr", state.instr); applyStatic(); renderAll();
+  }));
   $("langEn").addEventListener("click", () => setLang("en"));
   $("fmt12").addEventListener("click", () => setFmt(true));
   $("fmt24").addEventListener("click", () => setFmt(false));
